@@ -29,7 +29,7 @@ def make_dataframe(dataset_path, test_dataframe, max_instances, label_nb, criter
     rpnmatch_path = f"{dataset_path}rpn_match_bis/"
     rpnbbox_path = f"{dataset_path}rpn_bbox_bis/"
 
-    list_boxes = [x for x in os.listdir(boxes_path) if not "Eminie" in x]
+    list_boxes = [x for x in os.listdir(boxes_path) if "Eminie" not in x]
     list_test_boxes = [x.split("/")[-1] for x in list(test_dataframe[("Outputs", "boxes")])]
     for x in [f"Patrick_t{str(y).zfill(3)}_a00.dat" for y in range(1, 193)]:
         list_boxes.remove(x)
@@ -150,7 +150,7 @@ def pick_dataframe(dataframe, argsort, rules):
 # test_set = pd.read_csv(f"./test.csv", header=[0, 1])
 
 #   AC922
-dataset_path = f"/data/icar/gdavid/Embryo3D/"
+dataset_path = "/data/icar/gdavid/Embryo3D/"
 test_set = pd.read_csv(f"{dataset_path}datasets/test.csv", header=[0, 1])
 
 

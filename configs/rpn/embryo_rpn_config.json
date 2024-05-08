@@ -1,0 +1,26 @@
+{   
+    "DATA_DIR": "/data/icar/gdavid/Embryo3D/",
+    "NUM_CLASSES": 2,
+    "IMAGE_SIZE": 256, 
+    "IMAGE_CHANNEL_COUNT": 1, 
+    "MAX_GT_INSTANCES": 300,
+    "USE_MINI_MASK": true,
+    "EVALUATION_STEPS": 10,
+
+    "MODE": "training",
+
+    "BACKBONE": "resnet50", 
+    "TOP_DOWN_PYRAMID_SIZE": 64,
+    "RPN_TRAIN_ANCHORS_PER_IMAGE": 1500, 
+    "PRE_NMS_LIMIT": 3200, 
+    "POST_NMS_ROIS_TRAINING": 1500, 
+    "POST_NMS_ROIS_INFERENCE": 1500, 
+
+    "IMAGES_PER_GPU": 1, 
+    "GPU_COUNT": 1, 
+    "LOSS_WEIGHTS": {"rpn_class_loss": 1.0, "rpn_bbox_loss": 1.0}, 
+    "OPTIMIZER": {"name": "SGD", "parameters": {"learning_rate": 0.01, "momentum": 0.9}},
+    "WEIGHT_DIR": "weights/scp_rpn/",
+    "EPOCHS": 20,
+    "FROM_EPOCH": 0
+}

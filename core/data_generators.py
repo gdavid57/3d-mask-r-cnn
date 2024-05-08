@@ -128,8 +128,7 @@ class RPNGenerator(keras.utils.Sequence):
 
                     return inputs, outputs
             else:
-                image, boxes, class_ids = self.load_image_gt(image_id)
-                rpn_match, rpn_bbox = build_rpn_targets(self.anchors, class_ids, boxes, self.config)
+                image, _, rpn_match, rpn_bbox = self.load_image_gt(image_id)
 
                 # Init batch arrays
                 if b == 0:
@@ -155,7 +154,7 @@ class RPNGenerator(keras.utils.Sequence):
         # Load image and mask
         image = self.dataset.load_image(image_id)
         if self.config.MODE == "targeting":
-            boxes, class_ids, masks = self.dataset.load_data(image_id)
+            boxes, class_ids, masks, _, _ = self.dataset.load_data(image_id)
             active_class_ids = np.zeros([self.dataset.num_classes], dtype=np.int32)
             source_class_ids = self.dataset.source_class_ids[self.dataset.image_info[image_id]["source"]]
             active_class_ids[source_class_ids] = 1
@@ -164,8 +163,8 @@ class RPNGenerator(keras.utils.Sequence):
                                             (0, 0, 0, *self.config.IMAGE_SHAPE[:-1]), 1, active_class_ids)
             return image, image_meta, class_ids, boxes, masks
         else:
-            boxes, class_ids, _ = self.dataset.load_data(image_id, masks_needed=False)
-            return image, boxes, class_ids
+            boxes, _, _, rpn_match, rpn_bbox = self.dataset.load_data(image_id, gt_needed=False)
+            return image, boxes, rpn_match, rpn_bbox
 
     def on_epoch_end(self):
         if self.shuffle:
@@ -450,7 +449,7 @@ class Dataset(object):
         return self.image_info[image_id]["path"]
 
 
-class ToyDataset(Dataset):
+class EmbryoDataset(Dataset):
 
     def load_dataset(self, data_dir, is_train=True):
         '''
@@ -464,27 +463,29 @@ class ToyDataset(Dataset):
         # ann_mean = the mean of the origin 3D image pixel values [type: float]
         # ann_std = the standard deviation of the origin 3D image pixel values
         '''
-        self.add_class("dataset", 1, "sphere")
-        self.add_class("dataset", 2, "cube")
-        self.add_class("dataset", 3, "pyramid")
+        self.add_class("dataset", 1, "embryo")
 
         if is_train:
             td = pd.read_csv(f"{data_dir}datasets/train.csv", header=[0])
             for i in range(len(td)):
                 img_path = td["images"][i]
-                seg_path = td["segs"][i]
-                cab_path = td["cabs"][i]
-                m_path = td["masks"][i]
-                self.add_image('dataset', image_id=i, path=img_path, seg_path=seg_path, cab_path=cab_path, m_path=m_path)
+                bx_path = td["boxes"][i]
+                m_path = td["minimasks"][i]
+                rm_path = td["rpn_match"][i]
+                rb_path = td["rpn_bbox"][i]
+                self.add_image('dataset', image_id=i, path=img_path, bx_path=bx_path, m_path=m_path, rm_path=rm_path,
+                               rb_path=rb_path)
             print('Training dataset is loaded.')
         else:
             td = pd.read_csv(f"{data_dir}datasets/test.csv", header=[0])
             for i in range(len(td)):
                 img_path = td["images"][i]
-                seg_path = td["segs"][i]
-                cab_path = td["cabs"][i]
-                m_path = td["masks"][i]
-                self.add_image('dataset', image_id=i, path=img_path, seg_path=seg_path, cab_path=cab_path, m_path=m_path)
+                bx_path = td["boxes"][i]
+                m_path = td["minimasks"][i]
+                rm_path = td["rpn_match"][i]
+                rb_path = td["rpn_bbox"][i]
+                self.add_image('dataset', image_id=i, path=img_path, bx_path=bx_path, m_path=m_path, rm_path=rm_path,
+                               rb_path=rb_path)
             print('Validation dataset is loaded.')
 
     def load_image(self, image_id):
@@ -497,20 +498,30 @@ class ToyDataset(Dataset):
         image = image[..., np.newaxis]
         return image
 
-    def load_data(self, image_id, masks_needed=True):
+    def load_data(self, image_id, gt_needed=True):
+
         info = self.image_info[image_id]
-        cabs = np.loadtxt(info["cab_path"])
-        boxes = cabs[:, 1:]
-        class_ids = cabs[:, 0]
-        if masks_needed:
+        boxes = np.loadtxt(info["bx_path"])
+        
+        if gt_needed:
+
             masks = bz2.BZ2File(info["m_path"], 'rb')
             masks = cPickle.load(masks)
+            class_ids = np.ones(boxes.shape[0])
+            rpn_match = None
+            rpn_bbox = None
+
         else:
+
             masks = None
-        return boxes, class_ids, masks
+            class_ids = None
+            rpn_match = np.load(info["rm_path"])
+            rpn_bbox = np.load(info["rb_path"])
+
+        return boxes, class_ids, masks, rpn_match, rpn_bbox
 
 
-class ToyHeadDataset(Dataset):
+class EmbryoHeadDataset(Dataset):
 
     def load_dataset(self, data_dir, is_train=True):
         '''

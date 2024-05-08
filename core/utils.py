@@ -742,7 +742,7 @@ def rpn_evaluation(model, config, subsets, datasets):
             _, _, _, batch_rpn_rois, rpn_class_loss, rpn_bbox_loss = model.predict(inputs)
             
             for m in range(batch_rpn_rois.shape[0]):
-                _, boxes, _ = generator.load_image_gt(k * config.BATCH_SIZE + m)
+                _, boxes, _, _ = generator.load_image_gt(k * config.BATCH_SIZE + m)
                 
                 rpn_rois = denorm_boxes(batch_rpn_rois[m, :max_object_nb], config.IMAGE_SHAPE[:3])
                 # print(rpn_rois.shape, boxes.shape)

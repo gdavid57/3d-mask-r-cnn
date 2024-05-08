@@ -10,7 +10,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config_path', type=str, default='configs/rpn/scp_rpn_config.json')
+    parser.add_argument('--config_path', type=str, default='configs/rpn/embryo_rpn_config.json')
     parser.add_argument('--gpus', type=str, default='0')
     parser.add_argument('--summary', type=bool, default=True)
     args = parser.parse_args()
