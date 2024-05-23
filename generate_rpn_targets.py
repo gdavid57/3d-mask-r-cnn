@@ -24,8 +24,9 @@ os.makedirs(f"{data_path}rpn_match/", exist_ok=True)
 os.makedirs(f"{data_path}rpn_bbox/", exist_ok=True)
 
 df_train = pd.read_csv(f"{config.DATA_DIR}datasets/train.csv", header=[0])
+df_valid = pd.read_csv(f"{config.DATA_DIR}datasets/valid.csv", header=[0])
 df_test = pd.read_csv(f"{config.DATA_DIR}datasets/test.csv", header=[0])
-df = pd.concat([df_train, df_test]).reset_index()
+df = pd.concat([df_train, df_valid, df_test]).reset_index()
 
 print(df)
 
