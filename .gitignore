@@ -10,3 +10,4 @@
 /core/custom_op/__pycache__
 core/__pycache__
 raw_boxes/
+data/

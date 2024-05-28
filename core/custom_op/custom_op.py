@@ -19,10 +19,10 @@ from tensorflow.python.ops import array_ops
 #  3D NonMaxSuppression and CropAndResize imports + grad bootstrap
 #####################################################################
 
-nms3d_module = tf.load_op_library('./core/custom_op/non_max_suppression_3d_op.so')
-car3d_module = tf.load_op_library('./core/custom_op/crop_and_resize_3d_op.so')
-car3dgi_module = tf.load_op_library('./core/custom_op/crop_and_resize_3d_grad_image_op.so')
-car3dgb_module = tf.load_op_library('./core/custom_op/crop_and_resize_3d_grad_boxes_op.so')
+from crop_and_resize_3d import crop_and_resize_3d
+from crop_and_resize_3d_grad_boxes import crop_and_resize_3d_grad_boxes
+from crop_and_resize_3d_grad_image import crop_and_resize_3d_grad_image
+from non_max_suppression_3d import non_max_suppression_3d
 
 
 @ops.RegisterGradient("CropAndResize3D")
@@ -49,8 +49,8 @@ def _CropAndResize3DGrad(op, grad):
 
     allowed_types = [dtypes.float16, dtypes.float32, dtypes.float64]
     if op.inputs[0].dtype in allowed_types:
-        grad0 = car3dgi_module.crop_and_resize3d_grad_image(grad, op.inputs[1], op.inputs[2], image_shape,
-                                                            T=op.get_attr("T"), method_name=op.get_attr("method_name"))
+        grad0 = crop_and_resize_3d_grad_image(grad, op.inputs[1], op.inputs[2], image_shape,
+                                             T=op.get_attr("T"), method_name=op.get_attr("method_name"))
     else:
         grad0 = None
 
@@ -60,6 +60,6 @@ def _CropAndResize3DGrad(op, grad):
     # When using nearest neighbor sampling, the gradient to crop boxes'
     # coordinates are not well defined. In practice, we still approximate
     # grad1 using the gradient derived from trilinear sampling.
-    grad1 = car3dgb_module.crop_and_resize3d_grad_boxes(grad, op.inputs[0], op.inputs[1], op.inputs[2])
+    grad1 = crop_and_resize_3d_grad_boxes(grad, op.inputs[0], op.inputs[1], op.inputs[2])
 
     return [grad0, grad1, None, None]

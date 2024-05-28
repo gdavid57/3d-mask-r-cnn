@@ -1441,16 +1441,16 @@ class SaveWeightsCallback(keras.callbacks.Callback):
 
 
 class RPNEvaluationCallback(keras.callbacks.Callback):
-    def __init__(self, model, config, train_dataset, test_dataset):
+    def __init__(self, model, config, train_dataset, test_dataset, check_boxes=False):
         super(RPNEvaluationCallback, self).__init__()
         self.model = model
         self.config = config
         self.train_dataset = train_dataset
         self.test_dataset = test_dataset
+        self.check_boxes = check_boxes
 
     def on_epoch_end(self, epoch, logs=None):
-        rpn_evaluation(self.model, self.config, ["TRAIN SUBSET", "TEST SUBSET"], [self.train_dataset, self.test_dataset])
-
+        rpn_evaluation(self.model, self.config, ["TRAIN SUBSET", "TEST SUBSET"], [self.train_dataset, self.test_dataset], self.check_boxes)
 
 class HeadEvaluationCallback(keras.callbacks.Callback):
     def __init__(self, model, config, train_dataset, test_dataset):
@@ -1844,6 +1844,15 @@ class RPN():
             
             # Save dataset dataframe
             example_dataframe.to_csv(f"{base_path}datasets/{set_type}.csv", index=None)
+    
+    def evaluate(self):
+        
+        # Load RPN_WEIGHTS
+        self.keras_model.load_weights(self.config.RPN_WEIGHTS, by_name=True)
+
+        evaluation = RPNEvaluationCallback(self.keras_model, self.config, self.train_dataset, self.test_dataset, check_boxes=True)
+
+        evaluation.on_epoch_end(self.epoch)
 
 
 class HEAD():

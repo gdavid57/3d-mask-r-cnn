@@ -1,16 +1,16 @@
 {   
-    "DATA_DIR": "/data/icar/gdavid/Embryo3D/",
+    "DATA_DIR": "./data/",
     "NUM_CLASSES": 2,
     "IMAGE_SIZE": 256, 
     "IMAGE_CHANNEL_COUNT": 1, 
     "MAX_GT_INSTANCES": 300,
     "USE_MINI_MASK": true,
-    "EVALUATION_STEPS": 10,
+    "EVALUATION_STEPS": 102,
 
     "MODE": "training",
 
     "BACKBONE": "resnet50", 
-    "TOP_DOWN_PYRAMID_SIZE": 64,
+    "TOP_DOWN_PYRAMID_SIZE": 256,
     "RPN_TRAIN_ANCHORS_PER_IMAGE": 1500, 
     "PRE_NMS_LIMIT": 3200, 
     "POST_NMS_ROIS_TRAINING": 1500, 
