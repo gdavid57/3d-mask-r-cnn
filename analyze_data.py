@@ -96,11 +96,11 @@ train_dataset = pd.DataFrame({
 })
 
 combis = []
-combi_nb = 48
 for i in range(8):
     for j in range(6):
         combis.append(f"{i}{j}")
 
+combi_nb = 24
 for i in tqdm(range(len(final_dataset))):
     base_name = final_dataset["name"][i]
 
@@ -109,8 +109,8 @@ for i in tqdm(range(len(final_dataset))):
     typical = final_dataset["typical"][i]
     label = final_dataset["label"][i]
 
-    # random.shuffle(combis)
-    # special_combis = combis[:combi_nb]
+    random.shuffle(combis)
+    combis = combis[:combi_nb]
     all_augment = [f"{base_name}_a{combi}" for combi in combis]
     
     for augment in all_augment:

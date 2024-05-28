@@ -1,20 +1,3 @@
-"""
-3D Mask R-CNN
-
-Based on the 2D implementation by Matterport, Inc,
-the update to TensorFlow 2 written by Ahmed Gad and
-the world4jason fork that replaced the old data generator
-for the DataGenerator from keras.utils.Sequence.
-
-https://github.com/matterport/Mask_RCNN
-https://github.com/ahmedfgad/Mask-RCNN-TF2
-https://github.com/matterport/Mask_RCNN/pull/1611/files
-
-This 3D implementation was written by Gabriel David (PhD).
-
-Licensed under the MIT License (see Matterport_LICENSE for details)
-"""
-
 import os
 import re
 import math
@@ -35,7 +18,7 @@ import keras.models as KM
 
 import core.custom_op.custom_op as custom_op
 from core.utils import rpn_evaluation, head_evaluation, compute_ap
-from core.data_generators import RPNGenerator, HeadGenerator, MrcnnGenerator, EmbryoDataset, EmbryoHeadDataset
+from core.data_generators import RPNGenerator, HeadGenerator, MrcnnGenerator, ToyDataset, ToyHeadDataset
 
 # Requires TensorFlow 1.3+ and Keras 2.0.8+.
 from distutils.version import LooseVersion
@@ -369,7 +352,7 @@ class ProposalLayer(KE.Layer):
         # Non-max suppression
         def nms(boxes, scores):
 
-            indices = custom_op.nms3d_module.non_max_suppression3d(
+            indices = custom_op.non_max_suppression_3d(
                 boxes, 
                 scores, 
                 self.proposal_count,
@@ -554,11 +537,8 @@ class PyramidROIAlign(KE.Layer):
             # interpolating only a single value at each bin center (without
             # pooling) is nearly as effective."
             #
-            # Here we use the simplified approach of a single value per bin,
-            # which is how it's done in tf.crop_and_resize()
-            # Result: [batch * num_boxes, pool_height, pool_width, channels]
-            pooled.append(custom_op.car3d_module.crop_and_resize3d(
-                feature_maps[i], level_boxes, box_indices, self.pool_shape))
+            # Result: [batch * num_boxes, pool_height, pool_width, pool_depth, channels]
+            pooled.append(custom_op.crop_and_resize_3d(feature_maps[i], level_boxes, box_indices, self.pool_shape))
 
         # Pack pooled features into one tensor
         pooled = tf.concat(pooled, axis=0)
@@ -749,8 +729,7 @@ def detection_targets_graph(proposals, gt_class_ids, gt_boxes, gt_masks, train_r
         boxes = tf.concat([y1, x1, z1, y2, x2, z2], 1)
 
     box_ids = tf.range(0, tf.shape(roi_masks)[0])
-    masks = custom_op.car3d_module.crop_and_resize3d(tf.cast(roi_masks, tf.float32), boxes,
-                                     box_ids, mask_shape)
+    masks = custom_op.crop_and_resize_3d(tf.cast(roi_masks, tf.float32), boxes, box_ids, mask_shape)
     
     # Remove the extra dimension from masks.
     masks = tf.squeeze(masks, axis=4)
@@ -1098,7 +1077,7 @@ def refine_detections_graph(rois, probs, deltas, window, bbox_std_dev,
         ixs = tf.where(tf.equal(pre_nms_class_ids, class_id))[:, 0]
 
         # Apply NMS
-        class_keep = custom_op.nms3d_module.non_max_suppression3d(
+        class_keep = custom_op.non_max_suppression_3d(
             tf.gather(pre_nms_rois, ixs),
             tf.gather(pre_nms_scores, ixs),
             max_output_size=detection_max_instances,
@@ -1452,6 +1431,7 @@ class RPNEvaluationCallback(keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         rpn_evaluation(self.model, self.config, ["TRAIN SUBSET", "TEST SUBSET"], [self.train_dataset, self.test_dataset], self.check_boxes)
 
+
 class HeadEvaluationCallback(keras.callbacks.Callback):
     def __init__(self, model, config, train_dataset, test_dataset):
         super(HeadEvaluationCallback, self).__init__()
@@ -1500,11 +1480,11 @@ class RPN():
     def prepare_datasets(self):
 
         # Create Datasets
-        train_dataset = EmbryoDataset()
+        train_dataset = ToyDataset()
         train_dataset.load_dataset(data_dir=self.config.DATA_DIR)
         train_dataset.prepare()
 
-        test_dataset = EmbryoDataset()
+        test_dataset = ToyDataset()
         test_dataset.load_dataset(data_dir=self.config.DATA_DIR, is_train=False)
         test_dataset.prepare()
 
@@ -1844,7 +1824,7 @@ class RPN():
             
             # Save dataset dataframe
             example_dataframe.to_csv(f"{base_path}datasets/{set_type}.csv", index=None)
-    
+
     def evaluate(self):
         
         # Load RPN_WEIGHTS
@@ -1884,11 +1864,11 @@ class HEAD():
     def prepare_datasets(self):
 
         # Create Datasets
-        train_dataset = EmbryoHeadDataset()
+        train_dataset = ToyHeadDataset()
         train_dataset.load_dataset(data_dir=self.config.DATA_DIR)
         train_dataset.prepare()
 
-        test_dataset = EmbryoHeadDataset()
+        test_dataset = ToyHeadDataset()
         test_dataset.load_dataset(data_dir=self.config.DATA_DIR, is_train=False)
         test_dataset.prepare()
 
@@ -2111,11 +2091,11 @@ class MaskRCNN():
     def prepare_datasets(self):
 
         # Create Datasets
-        train_dataset = EmbryoDataset()
+        train_dataset = ToyDataset()
         train_dataset.load_dataset(data_dir=self.config.DATA_DIR)
         train_dataset.prepare()
 
-        test_dataset = EmbryoDataset()
+        test_dataset = ToyDataset()
         test_dataset.load_dataset(data_dir=self.config.DATA_DIR, is_train=False)
         test_dataset.prepare()
 
@@ -2535,8 +2515,7 @@ class MaskRCNN():
         result_dir = self.config.OUTPUT_DIR
         os.makedirs(result_dir, exist_ok=True)
 
-        # for i in tqdm(range(len(self.test_dataset.image_info))):
-        for i in tqdm(range(20)):
+        for i in tqdm(range(len(self.test_dataset.image_info))):
             # Load inputs
             name, inputs = data_generator.get_input_prediction(i)
 
