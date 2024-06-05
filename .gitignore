@@ -1,13 +1,8 @@
 /.vscode
+/.config
+/.keras
+/.nv
+/.cache
 /data
 /weights
-/core/custom_op/crop_and_resize_3d_grad_boxes_op.so
-/core/custom_op/crop_and_resize_3d_grad_image_op.so
-/core/custom_op/crop_and_resize_3d_op.so
-/core/custom_op/non_max_suppression_3d_op.so
-/core/custom_op/tflms
-/core/custom_op/tfsource
-/core/custom_op/__pycache__
-core/__pycache__
-raw_boxes/
 data/

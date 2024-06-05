@@ -1,25 +1,25 @@
 {   
     "DATA_DIR": "data/",
-    "NUM_CLASSES": 4,
-    "IMAGE_SIZE": 128, 
+    "NUM_CLASSES": 2,
+    "IMAGE_SIZE": 256, 
     "IMAGE_CHANNEL_COUNT": 1, 
-    "MAX_GT_INSTANCES": 20,
-    "USE_MINI_MASK": false,
+    "MAX_GT_INSTANCES": 350,
+    "USE_MINI_MASK": true,
     "TARGET_RATIO": 0.2,
-    "OUTPUT_DIR": "data/scp_target/",
+    "OUTPUT_DIR": "embryo_target/",
 
     "MODE": "targeting",
 
     "BACKBONE": "resnet50", 
-    "TOP_DOWN_PYRAMID_SIZE": 128,
-    "PRE_NMS_LIMIT": 1000, 
-    "POST_NMS_ROIS_TRAINING": 40, 
-    "POST_NMS_ROIS_INFERENCE": 40,
-    "TRAIN_ROIS_PER_IMAGE": 40, 
+    "TOP_DOWN_PYRAMID_SIZE": 256,
+    "PRE_NMS_LIMIT": 3200, 
+    "POST_NMS_ROIS_TRAINING": 100, 
+    "POST_NMS_ROIS_INFERENCE": 100,
+    "TRAIN_ROIS_PER_IMAGE": 100, 
     "ROI_POSITIVE_RATIO": 0.33, 
 
     "IMAGES_PER_GPU": 1, 
     "GPU_COUNT": 1, 
-    "RPN_WEIGHTS": "weights/scp_rpn/epoch_020.h5",
-    "FROM_EPOCH": 20
+    "RPN_WEIGHTS": "weights/scp_rpn/epoch_019.h5",
+    "FROM_EPOCH": 19
 }

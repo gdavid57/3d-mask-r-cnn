@@ -18,7 +18,7 @@ import keras.models as KM
 
 import core.custom_op.custom_op as custom_op
 from core.utils import rpn_evaluation, head_evaluation, compute_ap
-from core.data_generators import RPNGenerator, HeadGenerator, MrcnnGenerator, ToyDataset, ToyHeadDataset
+from core.data_generators import RPNGenerator, HeadGenerator, MrcnnGenerator, EmbryoDataset, EmbryoHeadDataset
 
 # Requires TensorFlow 1.3+ and Keras 2.0.8+.
 from distutils.version import LooseVersion
@@ -1420,16 +1420,17 @@ class SaveWeightsCallback(keras.callbacks.Callback):
 
 
 class RPNEvaluationCallback(keras.callbacks.Callback):
-    def __init__(self, model, config, train_dataset, test_dataset, check_boxes=False):
+    def __init__(self, model, config, train_dataset, valid_dataset, test_dataset, check_boxes=False):
         super(RPNEvaluationCallback, self).__init__()
         self.model = model
         self.config = config
         self.train_dataset = train_dataset
+        self.valid_dataset = valid_dataset
         self.test_dataset = test_dataset
         self.check_boxes = check_boxes
 
     def on_epoch_end(self, epoch, logs=None):
-        rpn_evaluation(self.model, self.config, ["TRAIN SUBSET", "TEST SUBSET"], [self.train_dataset, self.test_dataset], self.check_boxes)
+        rpn_evaluation(self.model, self.config, ["TRAIN SUBSET", "VALID_SUBSET", "TEST SUBSET"], [self.train_dataset, self.valid_dataset, self.test_dataset], self.check_boxes)
 
 
 class HeadEvaluationCallback(keras.callbacks.Callback):
@@ -1472,7 +1473,7 @@ class RPN():
         
         self.epoch = self.config.FROM_EPOCH
 
-        self.train_dataset, self.test_dataset = self.prepare_datasets()
+        self.train_dataset, self.valid_dataset, self.test_dataset = self.prepare_datasets()
 
         if show_summary:
             self.print_summary()
@@ -1480,15 +1481,19 @@ class RPN():
     def prepare_datasets(self):
 
         # Create Datasets
-        train_dataset = ToyDataset()
-        train_dataset.load_dataset(data_dir=self.config.DATA_DIR)
+        train_dataset = EmbryoDataset()
+        train_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="train")
         train_dataset.prepare()
 
-        test_dataset = ToyDataset()
-        test_dataset.load_dataset(data_dir=self.config.DATA_DIR, is_train=False)
+        valid_dataset = EmbryoDataset()
+        valid_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="valid")
+        valid_dataset.prepare()
+
+        test_dataset = EmbryoDataset()
+        test_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="test")
         test_dataset.prepare()
 
-        return train_dataset, test_dataset
+        return train_dataset, valid_dataset, test_dataset
 
     def print_summary(self):
         
@@ -1497,6 +1502,7 @@ class RPN():
 
         # Number of example in Datasets
         print("\nTrain dataset contains:", len(self.train_dataset.image_info), " elements.")
+        print("\nValid dataset contains:", len(self.valid_dataset.image_info), " elements.")
         print("Test dataset contains:", len(self.test_dataset.image_info), " elements.")
 
         # Configuration
@@ -1703,7 +1709,7 @@ class RPN():
 
         # Callback for saving weights
         save_weights = SaveWeightsCallback(self.config.WEIGHT_DIR)
-        evaluation = RPNEvaluationCallback(self.keras_model, self.config, self.train_dataset, self.test_dataset)
+        evaluation = RPNEvaluationCallback(self.keras_model, self.config, self.train_dataset, self.valid_dataset, self.test_dataset)
         
         # Model compilation
         self.compile()
@@ -1761,6 +1767,7 @@ class RPN():
 
         # Create Data Generators
         train_generator = RPNGenerator(dataset=self.train_dataset, config=self.config)
+        valid_generator = RPNGenerator(dataset=self.valid_dataset, config=self.config)
         test_generator = RPNGenerator(dataset=self.test_dataset, config=self.config)
 
         # Create target folders
@@ -1783,7 +1790,7 @@ class RPN():
         self.keras_model.load_weights(self.config.RPN_WEIGHTS, by_name=True)
 
         # Proper target generation
-        for generator, set_type in zip([train_generator, test_generator], ["train", "test"]):
+        for generator, set_type in zip([test_generator], ["test"]):
             
             print(f"TARGET GENERATION FOR {set_type} DATASET...")
 
@@ -1798,7 +1805,11 @@ class RPN():
             })
 
             # Loop over examples
-            n = int(self.config.TARGET_RATIO * len(generator.image_ids))
+            if set_type == "train":
+                n = int(self.config.TARGET_RATIO * len(generator.image_ids))
+            else:
+                n = len(generator.image_ids)
+            
             for ex_id in tqdm(range(n)):
 
                 item_info = generator.dataset.image_info[ex_id]
@@ -1830,7 +1841,7 @@ class RPN():
         # Load RPN_WEIGHTS
         self.keras_model.load_weights(self.config.RPN_WEIGHTS, by_name=True)
 
-        evaluation = RPNEvaluationCallback(self.keras_model, self.config, self.train_dataset, self.test_dataset, check_boxes=True)
+        evaluation = RPNEvaluationCallback(self.keras_model, self.config, self.train_dataset, self.valid_dataset, self.test_dataset, check_boxes=True)
 
         evaluation.on_epoch_end(self.epoch)
 
@@ -1864,11 +1875,11 @@ class HEAD():
     def prepare_datasets(self):
 
         # Create Datasets
-        train_dataset = ToyHeadDataset()
+        train_dataset = EmbryoHeadDataset()
         train_dataset.load_dataset(data_dir=self.config.DATA_DIR)
         train_dataset.prepare()
 
-        test_dataset = ToyHeadDataset()
+        test_dataset = EmbryoHeadDataset()
         test_dataset.load_dataset(data_dir=self.config.DATA_DIR, is_train=False)
         test_dataset.prepare()
 
@@ -2091,11 +2102,11 @@ class MaskRCNN():
     def prepare_datasets(self):
 
         # Create Datasets
-        train_dataset = ToyDataset()
+        train_dataset = EmbryoDataset()
         train_dataset.load_dataset(data_dir=self.config.DATA_DIR)
         train_dataset.prepare()
 
-        test_dataset = ToyDataset()
+        test_dataset = EmbryoDataset()
         test_dataset.load_dataset(data_dir=self.config.DATA_DIR, is_train=False)
         test_dataset.prepare()
 

@@ -451,7 +451,7 @@ class Dataset(object):
 
 class EmbryoDataset(Dataset):
 
-    def load_dataset(self, data_dir, is_train=True):
+    def load_dataset(self, data_dir, tag):
         '''
         An image is defined in the dataset by:
         # image_id, an image id [type: str of size 7]
@@ -465,28 +465,16 @@ class EmbryoDataset(Dataset):
         '''
         self.add_class("dataset", 1, "embryo")
 
-        if is_train:
-            td = pd.read_csv(f"{data_dir}datasets/train.csv", header=[0])
-            for i in range(len(td)):
-                img_path = td["images"][i]
-                bx_path = td["boxes"][i]
-                m_path = td["minimasks"][i]
-                rm_path = td["rpn_match"][i]
-                rb_path = td["rpn_bbox"][i]
-                self.add_image('dataset', image_id=i, path=img_path, bx_path=bx_path, m_path=m_path, rm_path=rm_path,
-                               rb_path=rb_path)
-            print('Training dataset is loaded.')
-        else:
-            td = pd.read_csv(f"{data_dir}datasets/test.csv", header=[0])
-            for i in range(len(td)):
-                img_path = td["images"][i]
-                bx_path = td["boxes"][i]
-                m_path = td["minimasks"][i]
-                rm_path = td["rpn_match"][i]
-                rb_path = td["rpn_bbox"][i]
-                self.add_image('dataset', image_id=i, path=img_path, bx_path=bx_path, m_path=m_path, rm_path=rm_path,
-                               rb_path=rb_path)
-            print('Validation dataset is loaded.')
+        td = pd.read_csv(f"{data_dir}datasets/{tag}.csv", header=[0])
+        for i in range(len(td)):
+            img_path = td["images"][i]
+            bx_path = td["boxes"][i]
+            m_path = td["minimasks"][i]
+            rm_path = td["rpn_match"][i]
+            rb_path = td["rpn_bbox"][i]
+            self.add_image('dataset', image_id=i, path=img_path, bx_path=bx_path, m_path=m_path, rm_path=rm_path,
+                            rb_path=rb_path)
+        print(f'{tag} dataset is loaded.')
 
     def load_image(self, image_id):
         """Load the specified image and return a [H,W,3] Numpy array.

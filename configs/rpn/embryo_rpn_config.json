@@ -3,7 +3,7 @@
     "NUM_CLASSES": 2,
     "IMAGE_SIZE": 256, 
     "IMAGE_CHANNEL_COUNT": 1, 
-    "MAX_GT_INSTANCES": 300,
+    "MAX_GT_INSTANCES": 350,
     "USE_MINI_MASK": true,
     "EVALUATION_STEPS": 102,
 
@@ -20,7 +20,7 @@
     "GPU_COUNT": 1, 
     "LOSS_WEIGHTS": {"rpn_class_loss": 1.0, "rpn_bbox_loss": 1.0}, 
     "OPTIMIZER": {"name": "SGD", "parameters": {"learning_rate": 0.01, "momentum": 0.9}},
-    "WEIGHT_DIR": "weights/scp_rpn/",
+    "WEIGHT_DIR": "weights/embryo_rpn/",
     "EPOCHS": 20,
     "FROM_EPOCH": 0
 }
