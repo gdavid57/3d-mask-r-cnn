@@ -511,7 +511,7 @@ class EmbryoDataset(Dataset):
 
 class EmbryoHeadDataset(Dataset):
 
-    def load_dataset(self, data_dir, is_train=True):
+    def load_dataset(self, data_dir, tag):
         '''
         An image is defined in the dataset by:
         # image_id, an image id [type: str of size 7]
@@ -523,34 +523,19 @@ class EmbryoHeadDataset(Dataset):
         # ann_mean = the mean of the origin 3D image pixel values [type: float]
         # ann_std = the standard deviation of the origin 3D image pixel values
         '''
-        self.add_class("dataset", 1, "sphere")
-        self.add_class("dataset", 2, "cube")
-        self.add_class("dataset", 3, "pyramid")
+        self.add_class("dataset", 1, "embryo")
 
-        if is_train:
-            td = pd.read_csv(f"{data_dir}datasets/train.csv", header=[0])
-            for i in range(len(td)):
-                r_path = td["rois"][i]
-                ra_path = td["rois_aligned"][i]
-                ma_path = td["mask_aligned"][i]
-                tci_path = td["target_class_ids"][i]
-                tb_path = td["target_bbox"][i]
-                tm_path = td["target_mask"][i]
-                self.add_image('dataset', image_id=i, path=r_path, ra_path=ra_path, ma_path=ma_path, tci_path=tci_path,
-                               tb_path=tb_path, tm_path=tm_path)
-            print('Training dataset is loaded.')
-        else:
-            td = pd.read_csv(f"{data_dir}datasets/test.csv", header=[0])
-            for i in range(len(td)):
-                r_path = td["rois"][i]
-                ra_path = td["rois_aligned"][i]
-                ma_path = td["mask_aligned"][i]
-                tci_path = td["target_class_ids"][i]
-                tb_path = td["target_bbox"][i]
-                tm_path = td["target_mask"][i]
-                self.add_image('dataset', image_id=i, path=r_path, ra_path=ra_path, ma_path=ma_path, tci_path=tci_path,
-                               tb_path=tb_path, tm_path=tm_path)
-            print('Validation dataset is loaded.')
+        td = pd.read_csv(f"{data_dir}datasets/{tag}.csv", header=[0])
+        for i in range(len(td)):
+            r_path = td["rois"][i]
+            ra_path = td["rois_aligned"][i]
+            ma_path = td["mask_aligned"][i]
+            tci_path = td["target_class_ids"][i]
+            tb_path = td["target_bbox"][i]
+            tm_path = td["target_mask"][i]
+            self.add_image('dataset', image_id=i, path=r_path, ra_path=ra_path, ma_path=ma_path, tci_path=tci_path,
+                            tb_path=tb_path, tm_path=tm_path)
+        print(f'{tag} dataset is loaded.')
 
     def load_data(self, image_id):
         info = self.image_info[image_id]

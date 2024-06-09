@@ -1434,15 +1434,16 @@ class RPNEvaluationCallback(keras.callbacks.Callback):
 
 
 class HeadEvaluationCallback(keras.callbacks.Callback):
-    def __init__(self, model, config, train_dataset, test_dataset):
+    def __init__(self, model, config, train_dataset, valid_dataset, test_dataset):
         super(HeadEvaluationCallback, self).__init__()
         self.model = model
         self.config = config
         self.train_dataset = train_dataset
+        self.valid_dataset = valid_dataset
         self.test_dataset = test_dataset
 
     def on_epoch_end(self, epoch, logs=None):
-        head_evaluation(self.model, self.config, ["TRAIN SUBSET", "TEST SUBSET"], [self.train_dataset, self.test_dataset])
+        head_evaluation(self.model, self.config, ["TRAIN SUBSET", "VALID SUBSET", "TEST SUBSET"], [self.train_dataset, self.valid_dataset, self.test_dataset])
 
 
 ############################################################
@@ -1867,7 +1868,7 @@ class HEAD():
         
         self.epoch = self.config.FROM_EPOCH
 
-        self.train_dataset, self.test_dataset = self.prepare_datasets()
+        self.train_dataset, self.valid_dataset, self.test_dataset = self.prepare_datasets()
 
         if show_summary:
             self.print_summary()
@@ -1876,14 +1877,18 @@ class HEAD():
 
         # Create Datasets
         train_dataset = EmbryoHeadDataset()
-        train_dataset.load_dataset(data_dir=self.config.DATA_DIR)
+        train_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="train")
         train_dataset.prepare()
 
+        valid_dataset = EmbryoHeadDataset()
+        valid_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="valid")
+        valid_dataset.prepare()
+
         test_dataset = EmbryoHeadDataset()
-        test_dataset.load_dataset(data_dir=self.config.DATA_DIR, is_train=False)
+        test_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="test")
         test_dataset.prepare()
 
-        return train_dataset, test_dataset
+        return train_dataset, valid_dataset, test_dataset
 
     def print_summary(self):
         
@@ -1892,6 +1897,7 @@ class HEAD():
 
         # Number of example in Datasets
         print("\nTrain dataset contains:", len(self.train_dataset.image_info), " elements.")
+        print("\nValid dataset contains:", len(self.valid_dataset.image_info), " elements.")
         print("Test dataset contains:", len(self.test_dataset.image_info), " elements.")
 
         # Configuration
@@ -2040,7 +2046,7 @@ class HEAD():
 
         # Callback for saving weights
         save_weights = SaveWeightsCallback(self.config.WEIGHT_DIR)
-        evaluation = HeadEvaluationCallback(self.keras_model, self.config, self.train_dataset, self.test_dataset)
+        evaluation = HeadEvaluationCallback(self.keras_model, self.config, self.train_dataset, self.valid_dataset, self.test_dataset)
         
         # Model compilation
         self.compile()
@@ -2094,7 +2100,7 @@ class MaskRCNN():
         
         self.epoch = self.config.FROM_EPOCH
 
-        self.train_dataset, self.test_dataset = self.prepare_datasets()
+        self.train_dataset, self.valid_dataset, self.test_dataset = self.prepare_datasets()
 
         if show_summary:
             self.print_summary()
@@ -2103,14 +2109,18 @@ class MaskRCNN():
 
         # Create Datasets
         train_dataset = EmbryoDataset()
-        train_dataset.load_dataset(data_dir=self.config.DATA_DIR)
+        train_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="train")
         train_dataset.prepare()
 
+        valid_dataset = EmbryoDataset()
+        valid_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="valid")
+        valid_dataset.prepare()
+
         test_dataset = EmbryoDataset()
-        test_dataset.load_dataset(data_dir=self.config.DATA_DIR, is_train=False)
+        test_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="test")
         test_dataset.prepare()
 
-        return train_dataset, test_dataset
+        return train_dataset, valid_dataset, test_dataset
 
     def print_summary(self):
         
@@ -2119,6 +2129,7 @@ class MaskRCNN():
 
         # Number of example in Datasets
         print("\nTrain dataset contains:", len(self.train_dataset.image_info), " elements.")
+        print("\nValid dataset contains:", len(self.valid_dataset.image_info), " elements.")
         print("Test dataset contains:", len(self.test_dataset.image_info), " elements.")
 
         # Configuration

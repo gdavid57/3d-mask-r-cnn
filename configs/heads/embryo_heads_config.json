@@ -1,26 +1,26 @@
 {   
-    "DATA_DIR": "data/scp_target/",
-    "NUM_CLASSES": 4,
-    "IMAGE_SIZE": 128, 
+    "DATA_DIR": "embryo_target/",
+    "NUM_CLASSES": 2,
+    "IMAGE_SIZE": 256, 
     "IMAGE_CHANNEL_COUNT": 1, 
-    "MAX_GT_INSTANCES": 20,
-    "USE_MINI_MASK": false,
+    "MAX_GT_INSTANCES": 350,
+    "USE_MINI_MASK": true,
     "TARGET_RATIO": 0.2,
-    "EVALUATION_STEPS": 100,
+    "EVALUATION_STEPS": 102,
 
     "MODE": "training",
 
-    "TOP_DOWN_PYRAMID_SIZE": 128,
+    "TOP_DOWN_PYRAMID_SIZE": 256,
     
-    "TRAIN_ROIS_PER_IMAGE": 40,
+    "TRAIN_ROIS_PER_IMAGE": 100,
     "ROI_POSITIVE_RATIO": 0.33, 
-    "FPN_CLASSIF_FC_LAYERS_SIZE": 128,
+    "FPN_CLASSIF_FC_LAYERS_SIZE": 256,
 
     "IMAGES_PER_GPU": 1, 
     "GPU_COUNT": 1,
     "LOSS_WEIGHTS": {"mrcnn_class_loss": 1.0, "mrcnn_bbox_loss": 1.0, "mrcnn_mask_loss": 1.0}, 
     "OPTIMIZER": {"name": "SGD", "parameters": {"learning_rate": 1e-2, "momentum": 0.9}},
-    "WEIGHT_DIR": "./weights/scp_heads/",
+    "WEIGHT_DIR": "weights/embryo_heads/",
     "EPOCHS": 20,
     "FROM_EPOCH": 0
 }
