@@ -266,7 +266,7 @@ class MrcnnGenerator(keras.utils.Sequence):
         image_meta = compose_image_meta(image_id, tuple(self.config.IMAGE_SHAPE), tuple(self.config.IMAGE_SHAPE), 
                                         (0, 0, 0, *self.config.IMAGE_SHAPE[:-1]), 1, active_class_ids)
         if self.training:
-            boxes, class_ids, masks = self.dataset.load_data(image_id)
+            boxes, class_ids, masks, _, _ = self.dataset.load_data(image_id)
             return image, image_meta, boxes, class_ids, masks
         else:
             return image, image_meta

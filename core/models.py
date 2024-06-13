@@ -2542,19 +2542,20 @@ class MaskRCNN():
             name, inputs = data_generator.get_input_prediction(i)
 
             # Load ground truth
-            _, _, gt_boxes, gt_class_ids, gt_masks = data_generator.load_image_gt(i)
+            _, _, gt_boxes, _, gt_masks = data_generator.load_image_gt(i)
 
             # Raw prediction
             detections, _, _, mrcnn_mask, _, _, _ = self.keras_model.predict(inputs)
 
             # Unmold prediction
-            pd_boxes, pd_scores, pd_class_ids, pd_masks, pd_segs = self.unmold_detections(detections[0], mrcnn_mask[0])
+            pd_boxes, _, _, pd_segs = self.unmold_detections(detections[0], mrcnn_mask[0])
+            gt_segs = self.unmold_groundtruth(gt_boxes, gt_masks)
 
             # Save predicted instance segmentation
             imsave(f"{self.config.OUTPUT_DIR}{name}", pd_segs.astype(np.uint8), check_contrast=False)
 
             # Evaluate
-            map50, precision50, recall50, ious = compute_ap(gt_boxes, gt_class_ids, gt_masks, pd_boxes, pd_class_ids, pd_scores, pd_masks, iou_threshold=0.5)
+            map50, precision50, recall50, ious = compute_ap(gt_boxes, gt_segs, pd_boxes, pd_segs, iou_threshold=0.5)
 
             # Write results in dataframe
             result_dataframe.loc[len(result_dataframe.index)] = [name, gt_masks.shape[-1], map50, precision50, recall50, np.mean(ious)]
@@ -2573,10 +2574,6 @@ class MaskRCNN():
 
         detections: [N, (y1, x1, z1, y2, x2, z2, class_id, score)] in normalized coordinates
         mrcnn_mask: [N, height, width, depth, num_classes]
-        original_image_shape: [H, W, D, C] Original image shape before resizing
-        image_shape: [H, W, D, C] Shape of the image after resizing and padding
-        window: [y1, x1, z1, y2, x2, z2] Pixel coordinates of box in the image where the real
-                image is excluding the padding.
 
         Returns:
         boxes: [N, (y1, x1, z1, y2, x2, z2)] Bounding boxes in pixels
@@ -2609,10 +2606,6 @@ class MaskRCNN():
             masks = np.delete(masks, exclude_ix, axis=0)
             N = class_ids.shape[0]
 
-        unmold_masks = np.zeros((*original_image_shape, masks.shape[0]))
-        for i in range(N): 
-            unmold_masks[..., i] = utils.unmold_mask(masks[i], boxes[i], original_image_shape)
-
         # Resize masks to original image size and set boundary threshold.
         segs = np.zeros((original_image_shape)).astype(np.uint16)
         for i in range(N):
@@ -2620,7 +2613,30 @@ class MaskRCNN():
             full_mask = utils.unmold_mask(masks[-i-1], boxes[-i-1], original_image_shape)
             segs = np.where(full_mask, i+1, segs)
 
-        return boxes, scores, class_ids, unmold_masks, segs
+        return boxes, scores, class_ids, segs
+    
+    def unmold_groundtruth(self, gt_boxes, gt_masks):
+        """
+        Reformats the detections of one image from the format of the neural
+        network output to a format suitable for use in the rest of the
+        application.
+
+        Returns:
+        segs
+        """
+        # How many detections do we have?
+        # Detections array is padded with zeros. Find the first class_id == 0.
+        original_image_shape = self.config.IMAGE_SHAPE[:3]
+        N = gt_boxes.shape[0]
+
+        # Resize masks to original image size and set boundary threshold.
+        segs = np.zeros((original_image_shape)).astype(np.uint16)
+        for i in range(N):
+            # Convert neural network mask to full size mask
+            full_mask = utils.unmold_mask(gt_masks[..., i], gt_boxes[i], original_image_shape)
+            segs = np.where(full_mask, i+1, segs)
+
+        return segs
 
     def get_anchors(self, image_shape):
         """Returns anchor pyramid for the given image size."""

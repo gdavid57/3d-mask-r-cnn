@@ -619,9 +619,16 @@ def trim_zeros(x):
     return x[~np.all(x == 0, axis=1)]
 
 
-def compute_matches(gt_boxes, gt_class_ids, gt_masks,
-                    pred_boxes, pred_class_ids, pred_scores, pred_masks,
-                    iou_threshold=0.5, score_threshold=0.0):
+def compute_mask_iou(mask1, mask2):
+    intersection = np.logical_and(mask1, mask2)
+    union = np.logical_or(mask1, mask2)
+    iou_score = np.sum(intersection) / np.sum(union)
+    return iou_score
+
+
+def compute_matches(gt_boxes, gt_segs,
+                    pred_boxes, pred_segs,
+                    iou_threshold=0.5):
     """Finds matches between prediction and ground truth instances.
 
     Returns:
@@ -633,43 +640,45 @@ def compute_matches(gt_boxes, gt_class_ids, gt_masks,
     """
 
     # Compute IoU overlaps [pred_masks, gt_masks]
-    overlaps = compute_overlaps_masks(pred_masks, gt_masks)
-    # print(overlaps)
+    overlaps = compute_overlaps(pred_boxes, gt_boxes)
+    gt_instances = np.unique(gt_segs)[1:]
+    pred_instances = np.unique(pred_segs)[1:]
     ious = []
+
     # Loop through predictions and find matching ground truth boxes
-    match_count = 0
+    # match_count = 0
     pred_match = -1 * np.ones([pred_boxes.shape[0]])
     gt_match = -1 * np.ones([gt_boxes.shape[0]])
     for i in range(len(pred_boxes)):
         # Find best matching ground truth box
         # 1. Sort matches by score
+        pred_mask = np.where(pred_segs == pred_instances[i], 1, 0).astype(bool)
         sorted_ixs = np.argsort(overlaps[i])[::-1]
         # 2. Remove low scores
-        low_score_idx = np.where(overlaps[i, sorted_ixs] < score_threshold)[0]
-        if low_score_idx.size > 0:
-            sorted_ixs = sorted_ixs[:low_score_idx[0]]
+        # low_score_idx = np.where(overlaps[i, sorted_ixs] < score_threshold)[0]
+        # if low_score_idx.size > 0:
+        #     sorted_ixs = sorted_ixs[:low_score_idx[0]]
         # 3. Find the match
         for j in sorted_ixs:
             # If ground truth box is already matched, go to next one
             if gt_match[j] > -1:
                 continue
             # If we reach IoU smaller than the threshold, end the loop
-            iou = overlaps[i, j]
+            gt_mask = np.where(gt_segs == gt_instances[j], 1, 0).astype(bool)
+            iou = compute_mask_iou(pred_mask, gt_mask)
             if iou < iou_threshold:
                 break
-            # Do we have a match?
-            if pred_class_ids[i] == gt_class_ids[j]:
-                match_count += 1
-                gt_match[j] = i
-                pred_match[i] = j
-                ious.append(overlaps[i, j])
-                break
+            # match_count += 1
+            gt_match[j] = i
+            pred_match[i] = j
+            ious.append(iou)
+            break
 
-    return gt_match, pred_match, ious
+    return gt_match, pred_match, np.mean(ious)
 
 
-def compute_ap(gt_boxes, gt_class_ids, gt_masks,
-               pred_boxes, pred_class_ids, pred_scores, pred_masks,
+def compute_ap(gt_boxes, gt_segs,
+               pred_boxes, pred_segs,
                iou_threshold=0.5):
     """Compute Average Precision at a set IoU threshold (default 0.5).
 
@@ -680,9 +689,9 @@ def compute_ap(gt_boxes, gt_class_ids, gt_masks,
     overlaps: [pred_boxes, gt_boxes] IoU overlaps.
     """
     # Get matches and overlaps
-    gt_match, pred_match, ious = compute_matches(
-        gt_boxes, gt_class_ids, gt_masks,
-        pred_boxes, pred_class_ids, pred_scores, pred_masks,
+    gt_match, pred_match, mean_iou = compute_matches(
+        gt_boxes, gt_segs,
+        pred_boxes, pred_segs,
         iou_threshold)
 
     # Compute precision and recall at each prediction box step
@@ -703,12 +712,11 @@ def compute_ap(gt_boxes, gt_class_ids, gt_masks,
     indices = np.where(recalls[:-1] != recalls[1:])[0] + 1
     mAP = np.sum((recalls[indices] - recalls[indices - 1]) *
                  precisions[indices])
-    
+
     precision_score = np.sum(pred_match > -1) / len(pred_match)
     recall_score = np.sum(pred_match > -1) / len(gt_match)
 
-    return mAP, precision_score, recall_score, ious
-
+    return mAP, precision_score, recall_score, mean_iou
 
 def rpn_evaluation(model, config, subsets, datasets, check_boxes):
     max_object_nb = 2 * config.MAX_GT_INSTANCES
