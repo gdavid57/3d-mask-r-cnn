@@ -6,6 +6,7 @@
     "MAX_GT_INSTANCES": 350,
     "USE_MINI_MASK": true,
     "EVALUATION_STEPS": 102,
+    "OUTPUT_DIR": "data/results/",
 
     "MODE": "training",
 
@@ -22,5 +23,6 @@
     "OPTIMIZER": {"name": "SGD", "parameters": {"learning_rate": 0.01, "momentum": 0.9}},
     "WEIGHT_DIR": "weights/embryo_rpn/",
     "EPOCHS": 20,
-    "FROM_EPOCH": 0
+    "FROM_EPOCH": 0,
+    "RPN_WEIGHTS": "weights/scp_rpn/epoch_019.h5"
 }

@@ -2,7 +2,7 @@ import os
 import argparse
 
 from core.config import load_config
-from core.models import RPN, HEAD, MaskRCNN
+from core.models import RPN, HEAD, SegBranch, MaskRCNN
 
 
 if __name__ == '__main__':
@@ -12,7 +12,7 @@ if __name__ == '__main__':
     parser.add_argument('--task', 
                         type=str,
                         required=True,
-                        choices=['RPN_TRAINING', 'RPN_EVALUATION', 'TARGET_GENERATION', 'HEAD_TRAINING', 'MRCNN_EVALUATION', 'MRCNN_TRAINING'],
+                        choices=['RPN_TRAINING', 'RPN_EVALUATION', 'TARGET_GENERATION', 'HEAD_TRAINING', 'HEAD_EVALUATION', 'SEGBRANCH_TRAINING', 'MRCNN_EVALUATION', 'MRCNN_TRAINING'],
                         help='Task to operate.')
     
     parser.add_argument('--config_path', 
@@ -61,6 +61,22 @@ if __name__ == '__main__':
         
         # Training loop (one epoch -> save weights -> quick train monitoring -> one epoch -> ...)
         head.train()
+    
+    elif args.task == "SEGBRANCH_TRAINING":
+
+        # Initiate model
+        segbranch = SegBranch(toy_config, show_summary=args.summary)
+        
+        # Training loop (one epoch -> save weights -> quick train monitoring -> one epoch -> ...)
+        segbranch.train()
+    
+    elif args.task == "HEAD_EVALUATION":
+        
+        # Initiate model
+        mrcnn = MaskRCNN(toy_config, show_summary=args.summary)
+
+        # Inference and evaluation over test dataset
+        mrcnn.head_evaluate()
     
     elif args.task == "MRCNN_EVALUATION":
         

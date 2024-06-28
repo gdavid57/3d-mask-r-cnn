@@ -9,48 +9,48 @@ import random
 
 ### RAW DATASET
 
-list_box_files = os.listdir("raw_boxes")
+# list_box_files = os.listdir("raw_boxes")
 
-dataset = pd.DataFrame({
-    "name": [],
-    "embryo": [],
-    "instance_nb": [],
-    "typical": [],
-})
+# dataset = pd.DataFrame({
+#     "name": [],
+#     "embryo": [],
+#     "instance_nb": [],
+#     "typical": [],
+# })
 
-for box_file in tqdm(list_box_files):
-    loaded_boxes = np.loadtxt(f"raw_boxes/{box_file}")
-    if "Patrick" in box_file:
-        if loaded_boxes.shape[0] < 350:
-            dx = loaded_boxes[:, 4] - loaded_boxes[:, 1]
-            dy = loaded_boxes[:, 3] - loaded_boxes[:, 0]
-            dz = loaded_boxes[:, 5] - loaded_boxes[:, 2]
-            typical = np.mean(np.power(dx*dy*dz, 1/3))
+# for box_file in tqdm(list_box_files):
+#     loaded_boxes = np.loadtxt(f"raw_boxes/{box_file}")
+#     if "Patrick" in box_file:
+#         if loaded_boxes.shape[0] < 350:
+#             dx = loaded_boxes[:, 4] - loaded_boxes[:, 1]
+#             dy = loaded_boxes[:, 3] - loaded_boxes[:, 0]
+#             dz = loaded_boxes[:, 5] - loaded_boxes[:, 2]
+#             typical = np.mean(np.power(dx*dy*dz, 1/3))
 
-            name = box_file.split("/")[-1].split('_a')[0]
-            embryo = box_file.split("/")[-1].split('_')[0]
+#             name = box_file.split("/")[-1].split('_a')[0]
+#             embryo = box_file.split("/")[-1].split('_')[0]
 
-            dataset.loc[len(dataset)] = [name, embryo, loaded_boxes.shape[0], typical]
+#             dataset.loc[len(dataset)] = [name, embryo, loaded_boxes.shape[0], typical]
     
-    else:
-        if loaded_boxes.shape[0] < 300:
-            dx = loaded_boxes[:, 4] - loaded_boxes[:, 1]
-            dy = loaded_boxes[:, 3] - loaded_boxes[:, 0]
-            dz = loaded_boxes[:, 5] - loaded_boxes[:, 2]
-            typical = np.mean(np.power(dx*dy*dz, 1/3))
-            if typical < 80:
+#     else:
+#         if loaded_boxes.shape[0] < 300:
+#             dx = loaded_boxes[:, 4] - loaded_boxes[:, 1]
+#             dy = loaded_boxes[:, 3] - loaded_boxes[:, 0]
+#             dz = loaded_boxes[:, 5] - loaded_boxes[:, 2]
+#             typical = np.mean(np.power(dx*dy*dz, 1/3))
+#             if typical < 80:
 
-                name = box_file.split("/")[-1].split('_a')[0]
-                embryo = box_file.split("/")[-1].split('_')[0]
+#                 name = box_file.split("/")[-1].split('_a')[0]
+#                 embryo = box_file.split("/")[-1].split('_')[0]
 
-                dataset.loc[len(dataset)] = [name, embryo, loaded_boxes.shape[0], typical]
+#                 dataset.loc[len(dataset)] = [name, embryo, loaded_boxes.shape[0], typical]
 
-dataset.to_csv("global_dataset.csv", index=None)
-print("Global dataset saved.")
+# dataset.to_csv("global_dataset.csv", index=None)
+# print("Global dataset saved.")
 
 ### DATASETS
 
-# dataset = pd.read_csv("global_dataset.csv", header=[0])
+dataset = pd.read_csv("global_dataset.csv", header=[0])
 
 kmeans = KMeans(3).fit(np.asarray(dataset["typical"]).reshape(-1, 1))
 

@@ -15,11 +15,12 @@
     "POST_NMS_ROIS_TRAINING": 1500, 
     "POST_NMS_ROIS_INFERENCE": 700,
 
-    "TRAIN_ROIS_PER_IMAGE": 100, 
+    "TRAIN_ROIS_PER_IMAGE": 200, 
     "ROI_POSITIVE_RATIO": 0.33, 
     "FPN_CLASSIF_FC_LAYERS_SIZE": 256,
     "DETECTION_MAX_INSTANCES": 350,
     "DETECTION_MIN_CONFIDENCE": 0.5,
+    "DETECTION_NMS_THRESHOLD": 0.45,
 
     "GPU_COUNT": 1, 
     "IMAGES_PER_GPU": 1,
@@ -29,5 +30,5 @@
     "EPOCHS": 20, 
     "FROM_EPOCH": 0,
     "RPN_WEIGHTS": "weights/scp_rpn/epoch_019.h5",
-    "HEAD_WEIGHTS": "weights/embryo_heads/epoch_020.h5"
+    "HEAD_WEIGHTS": "weights/embryo_heads/epoch_017.h5"
 }

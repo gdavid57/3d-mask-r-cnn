@@ -18,9 +18,10 @@
 
     "IMAGES_PER_GPU": 1, 
     "GPU_COUNT": 1,
-    "LOSS_WEIGHTS": {"mrcnn_class_loss": 1.0, "mrcnn_bbox_loss": 1.0, "mrcnn_mask_loss": 1.0}, 
+    "LOSS_WEIGHTS": {"mrcnn_mask_loss": 1.0}, 
     "OPTIMIZER": {"name": "SGD", "parameters": {"learning_rate": 1e-2, "momentum": 0.9}},
-    "WEIGHT_DIR": "weights/embryo_heads/",
+    "WEIGHT_DIR": "weights/embryo_segbranch/",
     "EPOCHS": 20,
-    "FROM_EPOCH": 0
+    "FROM_EPOCH": 0,
+    "HEAD_WEIGHTS": "weights/embryo_heads/epoch_017.h5"
 }
