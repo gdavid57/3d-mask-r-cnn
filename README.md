@@ -8,6 +8,8 @@ This repository is linked to the paper:
 
 We adopt a Docker approach to simplify the distribution and reproduction of our work. Running this 3D Mask R-CNN without our image is possible but requires to install TensorFlow sources and to compile the 3D Non Max Suppression and 3D Crop And Reisze custom operations by hand.
 
+Go back to [Toy dataset branch](https://github.com/gdavid57/3d-mask-r-cnn/tree/main).
+
 # Phallusia mammillata Dataset
 
 This section aims to reproduce the results of the paper mentioned above on the PM dataset. Please follow the default commands below.
@@ -59,7 +61,7 @@ The test set, composed of the PM1 series, is generated using:
 docker run -it --gpus "0" --volume $PWD:/workspace gdavid57/3d-mask-r-cnn python -m generate_datasets.py
 ```
 
-We also deliver the code to generate the RPN targets and to augment 3D instance segmentation data, although we do not use them for evaluation.
+For full transparency, we also deliver the code to generate the RPN targets and to augment 3D instance segmentation data, although we do not use them for evaluation.
 
 
 ## Mask R-CNN evaluation
