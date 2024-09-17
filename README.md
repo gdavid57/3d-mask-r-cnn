@@ -15,7 +15,7 @@ This section aims to reproduce the results of the paper mentioned above on the P
 Representations of pair ground truth instance segmentation and input image:
 
 <p align="center">
-    <img src="example/segmentation.gif" alt="Instance segmentation"><img src="example/input_image.gif" alt="Input image">
+    <img src="example/segmentation.gif" alt="Instance segmentation" width="50%"><img src="example/input_image.gif" alt="Input image" width="50%">
 </p>
 
 Clone this repository and access cloned directory with:
