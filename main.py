@@ -1,4 +1,3 @@
-import os
 import argparse
 
 from core.config import load_config

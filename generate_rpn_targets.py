@@ -11,29 +11,10 @@ from core.config import load_config
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
-config_path = "configs/rpn/embryo_rpn_config.json"
-config = load_config(config_path)
-
-backbone_shapes = compute_backbone_shapes(config, config.IMAGE_SHAPE)
-anchors = generate_pyramid_anchors(config.RPN_ANCHOR_SCALES, config.RPN_ANCHOR_RATIOS, backbone_shapes,
-                                   config.BACKBONE_STRIDES, config.RPN_ANCHOR_STRIDE)
-
-
-data_path = "/data/icar/gdavid/Embryo3D/"
-os.makedirs(f"{data_path}rpn_match/", exist_ok=True)
-os.makedirs(f"{data_path}rpn_bbox/", exist_ok=True)
-
-df_train = pd.read_csv(f"{config.DATA_DIR}datasets/train.csv", header=[0])
-df_valid = pd.read_csv(f"{config.DATA_DIR}datasets/valid.csv", header=[0])
-df_test = pd.read_csv(f"{config.DATA_DIR}datasets/test.csv", header=[0])
-df = pd.concat([df_train, df_valid, df_test]).reset_index()
-
-print(df)
-
-
 def generate_target(path):
 
     dataset = pd.read_csv(path, header=[0])
+    os.remove(path)
 
     for i in tqdm(range(len(dataset))):
 
@@ -66,5 +47,25 @@ def generate_data(full_dataset, thread_nb):
         x = threading.Thread(target=generate_target, args=(pathes[i], ))
         x.start()
 
+
+config_path = "configs/rpn/embryo_rpn_config.json"
+config = load_config(config_path)
+
+backbone_shapes = compute_backbone_shapes(config, config.IMAGE_SHAPE)
+anchors = generate_pyramid_anchors(config.RPN_ANCHOR_SCALES, config.RPN_ANCHOR_RATIOS, backbone_shapes,
+                                   config.BACKBONE_STRIDES, config.RPN_ANCHOR_STRIDE)
+
+
+data_path = "data/"
+os.makedirs(f"{data_path}rpn_match/", exist_ok=True)
+os.makedirs(f"{data_path}rpn_bbox/", exist_ok=True)
+
+# df_train = pd.read_csv(f"{config.DATA_DIR}datasets/train.csv", header=[0])
+# df_valid = pd.read_csv(f"{config.DATA_DIR}datasets/valid.csv", header=[0])
+df_test = pd.read_csv(f"{config.DATA_DIR}datasets/test.csv", header=[0])
+# df = pd.concat([df_train, df_valid, df_test]).reset_index()
+df = df_test.copy()
+
+print(df)
 
 generate_data(df, 5)

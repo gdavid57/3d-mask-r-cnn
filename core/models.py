@@ -2392,7 +2392,13 @@ class MaskRCNN():
         
         self.epoch = self.config.FROM_EPOCH
 
-        self.train_dataset, self.valid_dataset, self.test_dataset = self.prepare_datasets()
+        if self.config.MODE == "training":
+
+            self.train_dataset, self.valid_dataset, self.test_dataset = self.prepare_datasets()
+
+        else:
+            
+            self.test_dataset = self.prepare_datasets()
 
         if show_summary:
             self.print_summary()
@@ -2400,19 +2406,25 @@ class MaskRCNN():
     def prepare_datasets(self):
 
         # Create Datasets
-        train_dataset = EmbryoDataset()
-        train_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="train")
-        train_dataset.prepare()
-
-        valid_dataset = EmbryoDataset()
-        valid_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="valid")
-        valid_dataset.prepare()
-
         test_dataset = EmbryoDataset()
         test_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="test")
         test_dataset.prepare()
+        
+        if self.config.MODE == "training":
+            
+            train_dataset = EmbryoDataset()
+            train_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="train")
+            train_dataset.prepare()
 
-        return train_dataset, valid_dataset, test_dataset
+            valid_dataset = EmbryoDataset()
+            valid_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="valid")
+            valid_dataset.prepare()
+
+            return train_dataset, valid_dataset, test_dataset
+
+        else:
+            
+            return test_dataset
 
     def print_summary(self):
         
@@ -2420,8 +2432,11 @@ class MaskRCNN():
         self.keras_model.summary(line_length=140)
 
         # Number of example in Datasets
-        print("\nTrain dataset contains:", len(self.train_dataset.image_info), " elements.")
-        print("\nValid dataset contains:", len(self.valid_dataset.image_info), " elements.")
+        if self.config.MODE == "training":
+
+            print("\nTrain dataset contains:", len(self.train_dataset.image_info), " elements.")
+            print("\nValid dataset contains:", len(self.valid_dataset.image_info), " elements.")
+
         print("Test dataset contains:", len(self.test_dataset.image_info), " elements.")
 
         # Configuration
@@ -2813,44 +2828,46 @@ class MaskRCNN():
             self.keras_model.load_weights(self.config.RPN_WEIGHTS, by_name=True)
         if self.config.HEAD_WEIGHTS:
             self.keras_model.load_weights(self.config.HEAD_WEIGHTS, by_name=True)
+        if self.config.SEGBRANCH_WEIGHTS:
+            self.keras_model.load_weights(self.config.SEGBRANCH_WEIGHTS, by_name=True)
 
         # Create Data Generators
         data_generator = MrcnnGenerator(dataset=self.test_dataset, config=self.config)
 
-        result_dataframe = pd.DataFrame({
-        "name": [],
-        "instance_nb": [],
-        "map-50": [],
-        "precision-50": [],
-        "recall-50": [],
-        "iou-50": [],
-        })
+        result_dataframe = pd.DataFrame(
+            {
+                "name": [],
+                "instance_nb": [],
+                "map-50": [],
+                "precision-50": [],
+                "recall-50": [],
+                "iou-50": [],
+            }
+        )
 
         result_dir = self.config.OUTPUT_DIR
         os.makedirs(result_dir, exist_ok=True)
         os.makedirs(f"{result_dir}pred/", exist_ok=True)
-        os.makedirs(f"{result_dir}gt/", exist_ok=True)
 
         for i in tqdm(range(len(self.test_dataset.image_info))):
             # Load inputs
             name, inputs = data_generator.get_input_prediction(i)
 
             # Load ground truth
-            _, _, gt_boxes, _, gt_masks = data_generator.load_image_gt(i)
+            _, _, gt_boxes, _, _ = data_generator.load_image_gt(i)
 
             # Raw prediction
             detections, _, _, mrcnn_mask, _, _, _ = self.keras_model.predict(inputs)
 
             # Unmold prediction
             pd_boxes, _, _, pd_segs = self.unmold_detections(detections[0], mrcnn_mask[0])
-            # gt_segs = self.unmold_groundtruth(gt_boxes, gt_masks)
-            gt_segs = imread(f"/data/icar/gdavid/Embryo3D/segs/{name[:-9]}.tiff")
+            gt_name = name.replace("input", "ASTEC")
+            gt_segs = imread(f"{self.config.DATA_DIR}ASTEC_Ground_truth/{gt_name}").astype(np.uint16)
 
             print(name, len(np.unique(gt_segs)), len(np.unique(pd_segs)))
 
             # Save predicted instance segmentation
             imsave(f"{result_dir}pred/{name}", pd_segs.astype(np.uint16), check_contrast=False)
-            imsave(f"{result_dir}gt/{name}", gt_segs.astype(np.uint16), check_contrast=False)
 
             # Evaluate
             # map50, precision50, recall50, ious = compute_ap(gt_boxes, gt_segs, pd_boxes, pd_segs, iou_threshold=0.5)
@@ -2925,10 +2942,6 @@ class MaskRCNN():
             print("False negatives: ", FN, np.mean(FN_ious), np.std(FN_ious), np.mean(FN_volumes), np.std(FN_volumes))
             print("False positives: ", FP, np.mean(FP_ious), np.std(FP_ious), np.mean(FP_volumes), np.std(FP_volumes))
             print("True positives: ", TP, np.mean(TP_ious), np.std(TP_ious), np.mean(TP_volumes), np.std(TP_volumes))
-
-            
-
-        
 
     def unmold_detections(self, detections, mrcnn_mask):
         """

@@ -1,27 +1,3 @@
-"""
-Mask R-CNN
-Multi-GPU Support for Keras.
-
-Based on the 2D implementation by Matterport, Inc,
-the update to TensorFlow 2 written by Ahmed Gad and
-the world4jason fork that replaced the old data generator
-for the DataGenerator from keras.utils.Sequence.
-
-https://github.com/matterport/Mask_RCNN
-https://github.com/ahmedfgad/Mask-RCNN-TF2
-https://github.com/matterport/Mask_RCNN/pull/1611/files
-
-Ideas and a small code snippets from these sources:
-https://github.com/fchollet/keras/issues/2436
-https://medium.com/@kuza55/transparent-multi-gpu-training-on-tensorflow-with-keras-8b0016fd9012
-https://github.com/avolkov1/keras_experiments/blob/master/keras_exp/multigpu/
-https://github.com/fchollet/keras/blob/master/keras/utils/training_utils.py
-
-This 3D implementation was written by Gabriel David (PhD).
-
-Licensed under the MIT License (see Matterport_LICENSE for details)
-"""
-
 import tensorflow as tf
 import keras.backend as K
 import keras.layers as KL

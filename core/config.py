@@ -71,6 +71,7 @@ class Config(object):
         RPN_WEIGHTS = None,
         HEAD_WEIGHTS = None,
         MASK_WEIGHTS = None,
+        SEGBRANCH_WEIGHTS = None,
         EPOCHS = 1, 
         FROM_EPOCH = 0,
         WEIGHT_DECAY = 0.0001
@@ -264,6 +265,7 @@ class Config(object):
         self.RPN_WEIGHTS = RPN_WEIGHTS
         self.HEAD_WEIGHTS = HEAD_WEIGHTS
         self.MASK_WEIGHTS = MASK_WEIGHTS
+        self.SEGBRANCH_WEIGHTS = SEGBRANCH_WEIGHTS
 
         # Number of epochs to train over
         self.EPOCHS = EPOCHS

@@ -1,20 +1,3 @@
-"""
-3D Mask R-CNN
-
-Based on the 2D implementation by Matterport, Inc,
-the update to TensorFlow 2 written by Ahmed Gad and
-the world4jason fork that replaced the old data generator
-for the DataGenerator from keras.utils.Sequence.
-
-https://github.com/matterport/Mask_RCNN
-https://github.com/ahmedfgad/Mask-RCNN-TF2
-https://github.com/matterport/Mask_RCNN/pull/1611/files
-
-This 3D implementation was written by Gabriel David (PhD).
-
-Licensed under the MIT License (see Matterport_LICENSE for details)
-"""
-
 import math
 import bz2
 import _pickle as cPickle
@@ -319,10 +302,8 @@ class MrcnnGenerator(keras.utils.Sequence):
         image = imread(image_path)
         image = 2 * (image / 255) - 1
         image = image[..., np.newaxis]
-        batch_image_meta = np.zeros(
-            (self.batch_size,) + image_meta.shape, dtype=image_meta.dtype)
-        batch_images = np.zeros(
-            (self.batch_size,) + image.shape, dtype=np.float32)
+        batch_image_meta = np.zeros((self.batch_size,) + image_meta.shape, dtype=image_meta.dtype)
+        batch_images = np.zeros((self.batch_size,) + image.shape, dtype=np.float32)
         batch_anchors = self.anchors[np.newaxis]
         batch_image_meta[0] = image_meta
         batch_images[0] = image.astype(np.float32)
