@@ -56,42 +56,6 @@ class HeadGenerator(keras.utils.Sequence):
             np.random.shuffle(self.image_ids)
 
 
-class SegBranchGenerator(keras.utils.Sequence):
-
-    def __init__(self, dataset, config, shuffle=True):
-
-        self.image_ids = np.copy(dataset.image_ids)
-        self.dataset = dataset
-        self.config = config
-        self.shuffle = shuffle
-        self.batch_size = self.config.BATCH_SIZE
-
-    def __len__(self):
-        return int(np.ceil(len(self.image_ids) / float(self.batch_size)))
-
-    def __getitem__(self, idx):
-        return self.data_generator(self.image_ids[idx * self.batch_size:(idx + 1) * self.batch_size])
-
-    def data_generator(self, image_ids):
-        image_id = image_ids[0]
-
-        mask_aligned, target_class_ids, target_mask = self.load_image_gt(image_id)
-
-        inputs = [mask_aligned[np.newaxis], target_class_ids[np.newaxis], target_mask[np.newaxis, ..., np.newaxis]]
-        outputs = []
-
-        return inputs, outputs
-
-    def load_image_gt(self, image_id):
-        mask_aligned, target_class_ids, target_mask = self.dataset.load_data(image_id, segbranch_only=True)
-        
-        return mask_aligned, target_class_ids, target_mask
-
-    def on_epoch_end(self):
-        if self.shuffle:
-            np.random.shuffle(self.image_ids)
-
-
 class RPNGenerator(keras.utils.Sequence):
 
     def __init__(self, dataset, config, shuffle=True):

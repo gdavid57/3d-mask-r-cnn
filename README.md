@@ -30,28 +30,57 @@ See the main branch for extensive details.
 
 ## Data
 
-Data are hosted on figshare: [here](https://figshare.com/account/projects/220273/articles/26973085). The user is expected to download all these files and to unzip them in a "data" folder at the 3d-mask-r-cnn folder.
+Data are hosted on figshare: [here](https://figshare.com/account/projects/220273/articles/26973085). The user is expected to download all these files and to unzip them in a "data" folder at the 3d-mask-r-cnn folder, while the weights folder is moved at the same level as data, configs and core folders:
+
+    /configs
+    /core
+    /data
+        /ASTEC_Ground_truth
+            PM1_t001_ASTEC.tiff
+            ...
+        /Inputs
+            PM1_t001_input.tiff
+            ...
+    /weights
+        /rpn
+            epoch_019.h5
+        /heads
+            epoch_017.h5
+
+The Mask R-CNN evaluation partly relies on generated ground truth data such as the bounding boxes of the cell instances. To build these additive ground truths, run:
+
+```
+docker run -it --gpus "0" --volume $PWD:/workspace gdavid57/3d-mask-r-cnn python -m generate_bboxes_and_minimasks.py
+```
+
+The test set, composed of the PM1 series, is generated using:
+
+```
+docker run -it --gpus "0" --volume $PWD:/workspace gdavid57/3d-mask-r-cnn python -m generate_datasets.py
+```
+
+We also deliver the code to generate the RPN targets and to augment 3D instance segmentation data, although we do not use them for evaluation.
 
 
 ## Mask R-CNN evaluation
 
-Once the RPN and the Head have been trained, one can evaluate the performance of the whole Mask R-CNN with the script *mrcnn_evaluation.py* and the command line:
+One can evaluate the performance of the whole Mask R-CNN with the command line:
 
 ```
-docker run -it --gpus "0" --volume $PWD:/workspace gdavid57/3d-mask-r-cnn python -m main --task "MRCNN_EVALUATION" --config_path "configs/mrcnn/scp_mrcnn_config.json" --summary
+docker run -it --gpus "0" --volume $PWD:/workspace gdavid57/3d-mask-r-cnn python -m main --task "MRCNN_EVALUATION" --config_path "configs/mrcnn/embryo_mrcnn_config.json" --summary
 ```
 
 where
 
-+ --config: whole Mask R-CNN config. See *scp_mrcnn_config.json* or *core/config.py* for more details.
-+ --summary: if True, display the Mask R-CNN keras model summary, number of examples in train and test datasets, as well as the given config.
++ --config: whole Mask R-CNN config. See *embryo_mrcnn_config.json* or *core/config.py* for more details.
++ --summary: if True, display the Mask R-CNN keras model summary, number of examples in the test dataset, as well as the given config.
 
 By default, the predicted instance segmentation are saved under *data/results/* and results such as mAP, precision and recall are gathered in the *report.csv* in the same folder.
 
 
 # Troubleshooting
 
-+ Docker must be installed. See [here](https://docs.docker.com/engine/install/) for Docker installation. Don't forget to follow the post-installation instructions.
++ A recent version of Docker must be installed. See [here](https://docs.docker.com/engine/install/) for Docker installation. Follow the post-installation instructions to add current user to docker group.
 
 + In case of custom op error, please compile the 3D Non Max Suppression and 3D Crop And Resize on your own computer following [this tutorial](https://github.com/gdavid57/3d-nms-car-custom-op). The generated wheel archive should then be placed in core/custom_op/ of this repo, and the image must be rebuilt with
 

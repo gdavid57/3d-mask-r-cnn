@@ -30,6 +30,5 @@
     "EPOCHS": 20, 
     "FROM_EPOCH": 0,
     "RPN_WEIGHTS": "weights/scp_rpn/epoch_019.h5",
-    "HEAD_WEIGHTS": "weights/embryo_heads/epoch_017.h5",
-    "SEGBRANCH_WEIGHTS": "weights/embryo_segbranch/epoch_012.h5"
+    "HEAD_WEIGHTS": "weights/embryo_heads/epoch_017.h5"
 }

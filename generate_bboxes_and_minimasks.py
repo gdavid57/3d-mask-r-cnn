@@ -5,12 +5,10 @@ import bz2
 import _pickle as cPickle
 from skimage.transform import resize
 import threading
-import time
 
 
 def generate_phallusia_example(list_seg_names, astec_ground_truth_path, output_path):
 
-    start = time.time()
     list_errors = []
 
     while list_seg_names:
@@ -56,14 +54,11 @@ def generate_phallusia_example(list_seg_names, astec_ground_truth_path, output_p
 
             f.close()
 
-        except:
-
-            print('erreur')
-            list_errors.append(seg_path)
+        except Exception as e:
+    
+            list_errors.append([seg_path, e])
             
     print(list_errors)
-    end = time.time()
-    print(end-start)
 
 
 astec_ground_truth_path = "data/ASTEC_Ground_truth/"

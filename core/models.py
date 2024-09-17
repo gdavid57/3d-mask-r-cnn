@@ -23,8 +23,8 @@ if platform.processor() == 'ppc64le':
 else:
     import core.custom_op.custom_op as custom_op
 
-from core.utils import rpn_evaluation, head_evaluation, segbranch_evaluation, compute_ap, denorm_boxes, compute_overlaps
-from core.data_generators import RPNGenerator, HeadGenerator, SegBranchGenerator, MrcnnGenerator, EmbryoDataset, EmbryoHeadDataset
+from core.utils import rpn_evaluation, head_evaluation, compute_ap, denorm_boxes, compute_overlaps
+from core.data_generators import RPNGenerator, HeadGenerator, MrcnnGenerator, EmbryoDataset, EmbryoHeadDataset
 
 # Requires TensorFlow 1.3+ and Keras 2.0.8+.
 from distutils.version import LooseVersion
@@ -1452,19 +1452,6 @@ class HeadEvaluationCallback(keras.callbacks.Callback):
         head_evaluation(self.model, self.config, ["TRAIN SUBSET", "VALID SUBSET", "TEST SUBSET"], [self.train_dataset, self.valid_dataset, self.test_dataset])
 
 
-class SegBranchEvaluationCallback(keras.callbacks.Callback):
-    def __init__(self, model, config, train_dataset, valid_dataset, test_dataset):
-        super(SegBranchEvaluationCallback, self).__init__()
-        self.model = model
-        self.config = config
-        self.train_dataset = train_dataset
-        self.valid_dataset = valid_dataset
-        self.test_dataset = test_dataset
-
-    def on_epoch_end(self, epoch, logs=None):
-        segbranch_evaluation(self.model, self.config, ["TRAIN SUBSET", "VALID SUBSET", "TEST SUBSET"], [self.train_dataset, self.valid_dataset, self.test_dataset])
-
-
 ############################################################
 #  Models
 ############################################################
@@ -1485,7 +1472,7 @@ class RPN():
         test_dataset: data.Dataset test object
         """
 
-        assert config.MODE in ['training', 'targeting']
+        assert config.MODE in ['training', 'targeting', 'inference']
 
         self.config = config
 
@@ -1493,7 +1480,13 @@ class RPN():
         
         self.epoch = self.config.FROM_EPOCH
 
-        self.train_dataset, self.valid_dataset, self.test_dataset = self.prepare_datasets()
+        if self.config.MODE == "training":
+
+            self.train_dataset, self.valid_dataset, self.test_dataset = self.prepare_datasets()
+
+        else:
+            
+            self.test_dataset = self.prepare_datasets()
 
         if show_summary:
             self.print_summary()
@@ -1501,19 +1494,25 @@ class RPN():
     def prepare_datasets(self):
 
         # Create Datasets
-        train_dataset = EmbryoDataset()
-        train_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="train")
-        train_dataset.prepare()
-
-        valid_dataset = EmbryoDataset()
-        valid_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="valid")
-        valid_dataset.prepare()
-
         test_dataset = EmbryoDataset()
         test_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="test")
         test_dataset.prepare()
+        
+        if self.config.MODE == "training":
+            
+            train_dataset = EmbryoDataset()
+            train_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="train")
+            train_dataset.prepare()
 
-        return train_dataset, valid_dataset, test_dataset
+            valid_dataset = EmbryoDataset()
+            valid_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="valid")
+            valid_dataset.prepare()
+
+            return train_dataset, valid_dataset, test_dataset
+
+        else:
+            
+            return test_dataset
 
     def print_summary(self):
         
@@ -1521,8 +1520,11 @@ class RPN():
         self.keras_model.summary(line_length=140)
 
         # Number of example in Datasets
-        print("\nTrain dataset contains:", len(self.train_dataset.image_info), " elements.")
-        print("\nValid dataset contains:", len(self.valid_dataset.image_info), " elements.")
+        if self.config.MODE == "training":
+
+            print("\nTrain dataset contains:", len(self.train_dataset.image_info), " elements.")
+            print("\nValid dataset contains:", len(self.valid_dataset.image_info), " elements.")
+
         print("Test dataset contains:", len(self.test_dataset.image_info), " elements.")
 
         # Configuration
@@ -1864,11 +1866,11 @@ class RPN():
         # Load RPN_WEIGHTS
         self.keras_model.load_weights(self.config.RPN_WEIGHTS, by_name=True)
 
-        max_object_nb = self.config.MAX_GT_INSTANCES
+        max_object_nb = 2*self.config.MAX_GT_INSTANCES
 
         generator = RPNGenerator(self.test_dataset, self.config, shuffle=False)
-        t = []
-        for k in tqdm(range(self.config.EVALUATION_STEPS)):
+        detection_scores = []
+        for k in range(self.config.EVALUATION_STEPS):
 
             inputs, _ = generator.__getitem__(k)
             _, batch_rpn_class, _, batch_rpn_rois, _, _ = self.keras_model.predict(inputs)
@@ -1902,42 +1904,16 @@ class RPN():
                 positive_rois = rpn_rois[roi_association]
                 positive_boxes = boxes[box_association]
 
-                detection_score = int(100 * positive_rois.shape[0] / boxes.shape[0])
-                t.append(detection_score)
+                detection_score = positive_rois.shape[0] / boxes.shape[0]
+                detection_scores.append(detection_score)
 
                 pad = (np.sum(rpn_rois, axis=1) - 3).astype(bool)
                 rpn_rois = rpn_rois[pad]
-                nb_boxes = rpn_rois.shape[0]
+                nb_boxes = boxes.shape[0]
                 pd_boxes = positive_boxes.shape[0]
-                print(detection_score, nb_boxes, pd_boxes)
+                print("Detection score: ", detection_score, ", Nb. of GT boxes: ", nb_boxes, ", Nb. of pred. boxes: ", pd_boxes)
 
-                # image_path = self.test_dataset.image_info[k * self.config.BATCH_SIZE + m]["path"]
-                # name = image_path.split("/")[-1][:-9]
-                # gt_segs = imread(f"/data/icar/gdavid/Embryo3D/segs/{name}.tiff")
-
-                # labels = np.unique(gt_segs)[1:]
-                # labels = labels[box_association]
-
-                # ious = (100 * compute_overlaps(positive_boxes, positive_rois).diagonal()).astype(np.uint8)
-                # scores = (100 * rpn_class[roi_association]).astype(np.uint8)
-
-                # score_segs = np.zeros(gt_segs.shape, dtype=np.uint8)
-                # iou_segs = np.zeros(gt_segs.shape, dtype=np.uint8)
-                # f = open(f"{self.config.OUTPUT_DIR}RPN/boxes/{detection_score}_{name}.dat", 'w')
-
-                # for i, label in enumerate(labels):
-
-                #     score_segs = np.where(gt_segs == label, scores[i], score_segs)
-                #     iou_segs = np.where(gt_segs == label, ious[i], iou_segs)
-                #     y1, x1, z1, y2, x2, z2 = np.split(positive_boxes[i], 6)
-                #     y1p, x1p, z1p, y2p, x2p, z2p = np.split(positive_rois[i], 6)
-                #     f.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(ious[i], y1p, y1, x1p, x1, z1p, z1, y2p, y2, x2p, x2, z2p, z2))
-
-                # seg_maps = np.concatenate([score_segs, iou_segs], axis=2)
-
-                # imsave(f"{self.config.OUTPUT_DIR}RPN/seg_maps/{detection_score}_{name}.tiff", seg_maps)
-                # f.close()
-        print(np.mean(t))
+        print("Average detecion score: ", np.mean(detection_scores))
 
 
 class HEAD():
@@ -2140,205 +2116,6 @@ class HEAD():
         # Callback for saving weights
         save_weights = SaveWeightsCallback(self.config.WEIGHT_DIR)
         evaluation = HeadEvaluationCallback(self.keras_model, self.config, self.train_dataset, self.valid_dataset, self.test_dataset)
-        
-        # Model compilation
-        self.compile()
-
-        # Initialize weight dir
-        os.makedirs(self.config.WEIGHT_DIR, exist_ok=True)
-
-        # Load weights if self.config.HEAD_WEIGHTS is not None
-        if self.config.HEAD_WEIGHTS:
-            self.keras_model.load_weights(self.config.HEAD_WEIGHTS, by_name=True)
-
-        # Work-around for Windows: Keras fails on Windows when using
-        # multiprocessing workers. See discussion here:
-        # https://github.com/matterport/Mask_RCNN/issues/13#issuecomment-353124009
-        if os.name == 'nt':
-            workers = 0
-        else:
-            workers = multiprocessing.cpu_count()
-
-        # Training loop
-        self.keras_model.fit_generator(
-            train_generator,
-            initial_epoch=self.config.FROM_EPOCH,
-            epochs=self.config.FROM_EPOCH + self.config.EPOCHS,
-            steps_per_epoch=len(self.train_dataset.image_info),
-            callbacks=[save_weights, evaluation],
-            validation_data=None,
-            max_queue_size=10,
-            workers=workers,
-            use_multiprocessing=True,
-        )
-
-
-class SegBranch():
-    """
-    Encapsulates the Head Mask RCNN model functionality.
-
-    The actual Keras model is in the keras_model property.
-    """
-
-    def __init__(self, config, show_summary):
-        """
-        config: RPN configuration
-        weight_dir: training weight directory
-        train_dataset: data.Dataset train object
-        test_dataset: data.Dataset test object
-        """
-        
-        self.config = config
-
-        self.keras_model = self.build()
-        
-        self.epoch = self.config.FROM_EPOCH
-
-        self.train_dataset, self.valid_dataset, self.test_dataset = self.prepare_datasets()
-
-        if show_summary:
-            self.print_summary()
-
-    def prepare_datasets(self):
-
-        # Create Datasets
-        train_dataset = EmbryoHeadDataset()
-        train_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="train")
-        train_dataset.prepare()
-
-        valid_dataset = EmbryoHeadDataset()
-        valid_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="valid")
-        valid_dataset.prepare()
-
-        test_dataset = EmbryoHeadDataset()
-        test_dataset.load_dataset(data_dir=self.config.DATA_DIR, tag="test")
-        test_dataset.prepare()
-
-        return train_dataset, valid_dataset, test_dataset
-
-    def print_summary(self):
-        
-        # Model summary
-        self.keras_model.summary(line_length=140)
-
-        # Number of example in Datasets
-        print("\nTrain dataset contains:", len(self.train_dataset.image_info), " elements.")
-        print("\nValid dataset contains:", len(self.valid_dataset.image_info), " elements.")
-        print("Test dataset contains:", len(self.test_dataset.image_info), " elements.")
-
-        # Configuration
-        self.config.display()
-
-    def build(self):
-        """
-        Build Head Mask R-CNN architecture.
-        """
-        
-        # Inputs
-        input_target_class_ids = KL.Input(shape=[self.config.TRAIN_ROIS_PER_IMAGE, ], name="input_target_class_ids")
-
-        input_mask_aligned = KL.Input(
-            shape=[
-                self.config.TRAIN_ROIS_PER_IMAGE, 
-                self.config.MASK_POOL_SIZE, 
-                self.config.MASK_POOL_SIZE,
-                self.config.MASK_POOL_SIZE, 
-                self.config.TOP_DOWN_PYRAMID_SIZE
-            ],
-            name="input_mask_aligned"
-        )
-
-        input_target_mask = KL.Input(
-            shape=[self.config.TRAIN_ROIS_PER_IMAGE, *self.config.MASK_SHAPE, 1],
-            name="input_target_mask"
-        )
-        
-        # Network Heads: segmentation
-        mrcnn_mask = build_fpn_mask_graph(
-            y=input_mask_aligned, 
-            num_classes=self.config.NUM_CLASSES,
-            conv_channel=self.config.HEAD_CONV_CHANNEL, 
-            train_bn=self.config.TRAIN_BN
-        )
-        
-        mask_loss = KL.Lambda(lambda x: mrcnn_mask_loss_graph(*x), name="mrcnn_mask_loss")(
-            [input_target_mask, input_target_class_ids, mrcnn_mask])
-
-        # Model
-        inputs = [input_mask_aligned, input_target_class_ids, input_target_mask]
-        outputs = [mrcnn_mask, mask_loss]
-
-        model = KM.Model(inputs, outputs, name='segbranch_training')
-
-        # Add multi-GPU support.
-        if self.config.GPU_COUNT > 1:
-
-            from core.parallel_model import ParallelModel
-            model = ParallelModel(model, self.config.GPU_COUNT)
-
-        return model
-
-    def compile(self,):
-        """
-        Gets the model ready for training. Adds losses, regularization, and
-        metrics. Then calls the Keras compile() function.
-        """
-
-        self.keras_model.metrics_tensors = []
-
-        if self.config.OPTIMIZER["name"] == "ADADELTA":
-
-            optimizer = keras.optimizers.Adadelta(**self.config.OPTIMIZER["parameters"])
-
-        elif self.config.OPTIMIZER["name"] == "SGD":
-
-            optimizer = keras.optimizers.SGD(**self.config.OPTIMIZER["parameters"])
-
-        # Add Losses
-        # First, clear previously set losses to avoid duplication
-        self.keras_model._losses = []
-        self.keras_model._per_input_losses = {}
-        loss_names = ["mrcnn_mask_loss"]
-
-        for name in loss_names:
-
-            layer = self.keras_model.get_layer(name)
-            loss = (
-                    tf.reduce_mean(layer.output, keepdims=True)
-                    * self.config.LOSS_WEIGHTS.get(name, 1.)
-                )
-            self.keras_model.add_loss(loss)
-        
-        # Add L2 Regularization
-        # Skip gamma and beta weights of batch normalization layers.
-        reg_losses = [
-            keras.regularizers.l2(self.config.WEIGHT_DECAY)(w) / tf.cast(tf.size(w), tf.float32)
-            for w in self.keras_model.trainable_weights
-            if 'gamma' not in w.name and 'beta' not in w.name]
-        self.keras_model.add_loss(tf.add_n(reg_losses))
-
-        # Compile
-        self.keras_model.compile(optimizer=optimizer, loss=[None] * len(self.keras_model.outputs))
-
-        # Add metrics for losses
-        for name in loss_names:
-            if name in self.keras_model.metrics_names:
-                continue
-            layer = self.keras_model.get_layer(name)
-            self.keras_model.metrics_names.append(name)
-            loss = (layer.output * self.config.LOSS_WEIGHTS.get(name, 1.))
-            self.keras_model.metrics_tensors.append(loss)
-
-    def train(self):
-        
-        assert self.config.MODE == "training", "Create model in training mode."
-
-        # Create Data Generators
-        train_generator = SegBranchGenerator(dataset=self.train_dataset, config=self.config)
-
-        # Callback for saving weights
-        save_weights = SaveWeightsCallback(self.config.WEIGHT_DIR)
-        evaluation = SegBranchEvaluationCallback(self.keras_model, self.config, self.train_dataset, self.valid_dataset, self.test_dataset)
         
         # Model compilation
         self.compile()
@@ -2845,11 +2622,10 @@ class MaskRCNN():
             }
         )
 
-        result_dir = self.config.OUTPUT_DIR
-        os.makedirs(result_dir, exist_ok=True)
-        os.makedirs(f"{result_dir}pred/", exist_ok=True)
+        os.makedirs(self.config.OUTPUT_DIR, exist_ok=True)
+        os.makedirs(f"{self.config.OUTPUT_DIR}pred/", exist_ok=True)
 
-        for i in tqdm(range(len(self.test_dataset.image_info))):
+        for i in range(len(self.test_dataset.image_info)):
             # Load inputs
             name, inputs = data_generator.get_input_prediction(i)
 
@@ -2864,23 +2640,21 @@ class MaskRCNN():
             gt_name = name.replace("input", "ASTEC")
             gt_segs = imread(f"{self.config.DATA_DIR}ASTEC_Ground_truth/{gt_name}").astype(np.uint16)
 
-            print(name, len(np.unique(gt_segs)), len(np.unique(pd_segs)))
-
             # Save predicted instance segmentation
-            imsave(f"{result_dir}pred/{name}", pd_segs.astype(np.uint16), check_contrast=False)
+            imsave(f"{self.config.OUTPUT_DIR}pred/{name}", pd_segs.astype(np.uint16), check_contrast=False)
 
             # Evaluate
-            # map50, precision50, recall50, ious = compute_ap(gt_boxes, gt_segs, pd_boxes, pd_segs, iou_threshold=0.5)
-            # print(map50, precision50, recall50, ious)
+            map50, precision50, recall50, mean_ious = compute_ap(gt_boxes, gt_segs, pd_boxes, pd_segs, iou_threshold=0.5)
+            print(f"{i}/{len(self.test_dataset.image_info)} ", name, ", mAP: ", map50, ", Precision: ", precision50, ", Recall: ", recall50, ", Mean IoUs: ", mean_ious)
 
             # Write results in dataframe
-            # result_dataframe.loc[len(result_dataframe.index)] = [name, gt_masks.shape[-1], map50, precision50, recall50, np.mean(ious)]
+            result_dataframe.loc[len(result_dataframe.index)] = [name, gt_boxes.shape[0], map50, precision50, recall50, mean_ious]
 
         # Save dataframe
-        # result_dataframe.to_csv(f"{result_dir}report.csv", index=None)
+        result_dataframe.to_csv(f"{self.config.OUTPUT_DIR}report.csv", index=None)
 
         # Print mean results
-        # print(result_dataframe.mean())
+        print(result_dataframe.median())
     
     def head_evaluate(self):
 
@@ -2898,7 +2672,7 @@ class MaskRCNN():
         data_generator = MrcnnGenerator(dataset=self.test_dataset, config=self.config)
 
         # for i in tqdm(range(len(self.test_dataset.image_info))):
-        for i in tqdm(range(1)):
+        for i in range(len(self.test_dataset.image_info)):
             # Load inputs
             name, inputs = data_generator.get_input_prediction(i)
 
@@ -2912,7 +2686,7 @@ class MaskRCNN():
 
             rpn_rois = denorm_boxes(rpn_rois[0], self.config.IMAGE_SHAPE[:3])
 
-            roi_volumes = np.power((rpn_rois[:, 3] - rpn_rois[:, 0]) * (rpn_rois[:, 4] - rpn_rois[:, 1]) * (rpn_rois[:, 5] - rpn_rois[:, 2]), 1./3.)
+            roi_typsizes = np.power((rpn_rois[:, 3] - rpn_rois[:, 0]) * (rpn_rois[:, 4] - rpn_rois[:, 1]) * (rpn_rois[:, 5] - rpn_rois[:, 2]), 1./3.)
 
             box_overlaps = compute_overlaps(gt_boxes, rpn_rois)
 
@@ -2932,16 +2706,16 @@ class MaskRCNN():
             FP_ious = roi_ious[FP_rois]
             TP_ious = roi_ious[TP_rois]
 
-            TN_volumes = roi_volumes[TN_rois]
-            FN_volumes = roi_volumes[FN_rois]
-            FP_volumes = roi_volumes[FP_rois]
-            TP_volumes = roi_volumes[TP_rois]
+            TN_typsizes = roi_typsizes[TN_rois]
+            FN_typsizes = roi_typsizes[FN_rois]
+            FP_typsizes = roi_typsizes[FP_rois]
+            TP_typsizes = roi_typsizes[TP_rois]
 
             print("Name: ", name, ", Instance number: ", gt_boxes.shape[0])
-            print("True negatives: ", TN, np.mean(TN_ious), np.std(TN_ious), np.mean(TN_volumes), np.std(TN_volumes))
-            print("False negatives: ", FN, np.mean(FN_ious), np.std(FN_ious), np.mean(FN_volumes), np.std(FN_volumes))
-            print("False positives: ", FP, np.mean(FP_ious), np.std(FP_ious), np.mean(FP_volumes), np.std(FP_volumes))
-            print("True positives: ", TP, np.mean(TP_ious), np.std(TP_ious), np.mean(TP_volumes), np.std(TP_volumes))
+            print("True negatives: ", TN, ", Mean IoUs: ", np.mean(TN_ious), ", Mean typical size: ", np.mean(TN_typsizes))
+            print("False negatives: ", FN, ", Mean IoUs: ", np.mean(FN_ious), ", Mean typical size: ", np.mean(FN_typsizes))
+            print("False positives: ", FP, ", Mean IoUs: ", np.mean(FP_ious), ", Mean typical size: ", np.mean(FP_typsizes))
+            print("True positives: ", TP, ", Mean IoUs: ", np.mean(TP_ious), ", Mean typical size: ", np.mean(TP_typsizes))
 
     def unmold_detections(self, detections, mrcnn_mask):
         """
@@ -2990,30 +2764,9 @@ class MaskRCNN():
             full_mask = utils.unmold_mask(masks[-i-1], boxes[-i-1], original_image_shape)
             segs = np.where(full_mask, i+1, segs)
 
+        boxes = np.flip(boxes, 0)
+
         return boxes, scores, class_ids, segs
-    
-    def unmold_groundtruth(self, gt_boxes, gt_masks):
-        """
-        Reformats the detections of one image from the format of the neural
-        network output to a format suitable for use in the rest of the
-        application.
-
-        Returns:
-        segs
-        """
-        # How many detections do we have?
-        # Detections array is padded with zeros. Find the first class_id == 0.
-        original_image_shape = self.config.IMAGE_SHAPE[:3]
-        N = gt_boxes.shape[0]
-
-        # Resize masks to original image size and set boundary threshold.
-        segs = np.zeros((original_image_shape)).astype(np.uint16)
-        for i in range(N):
-            # Convert neural network mask to full size mask
-            full_mask = utils.unmold_mask(gt_masks[..., i], gt_boxes[i].astype(np.int32), original_image_shape)
-            segs = np.where(full_mask, i+1, segs)
-
-        return segs
 
     def get_anchors(self, image_shape):
         """Returns anchor pyramid for the given image size."""

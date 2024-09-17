@@ -1,7 +1,7 @@
 import argparse
 
 from core.config import load_config
-from core.models import RPN, HEAD, SegBranch, MaskRCNN
+from core.models import RPN, HEAD, MaskRCNN
 
 
 if __name__ == '__main__':
@@ -60,14 +60,6 @@ if __name__ == '__main__':
         
         # Training loop (one epoch -> save weights -> quick train monitoring -> one epoch -> ...)
         head.train()
-    
-    elif args.task == "SEGBRANCH_TRAINING":
-
-        # Initiate model
-        segbranch = SegBranch(toy_config, show_summary=args.summary)
-        
-        # Training loop (one epoch -> save weights -> quick train monitoring -> one epoch -> ...)
-        segbranch.train()
     
     elif args.task == "HEAD_EVALUATION":
         

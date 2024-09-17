@@ -8,7 +8,7 @@
     "EVALUATION_STEPS": 102,
     "OUTPUT_DIR": "data/results/",
 
-    "MODE": "training",
+    "MODE": "inference",
 
     "BACKBONE": "resnet50", 
     "TOP_DOWN_PYRAMID_SIZE": 256,

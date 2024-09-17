@@ -9,7 +9,7 @@ import tensorflow as tf
 import warnings
 from distutils.version import LooseVersion
 
-from .data_generators import RPNGenerator, HeadGenerator, SegBranchGenerator
+from .data_generators import RPNGenerator, HeadGenerator
 
 
 ############################################################
@@ -812,28 +812,6 @@ def head_evaluation(model, config, subsets, datasets):
         print("CLASS:", mean_class_loss, "+/-", std_class_loss, 
               "BBOX:", mean_bbox_loss, "+/-", std_bbox_loss, 
               "MASK:", mean_mask_loss, "+/-", std_mask_loss)
-
-
-def segbranch_evaluation(model, config, subsets, datasets):
-    
-    for subset, dataset in zip(subsets, datasets):
-
-        print(subset)
-
-        data_generator = SegBranchGenerator(dataset=dataset, config=config, shuffle=False)
-        mask_losses = []
-
-        for id in range(config.EVALUATION_STEPS):
-
-            inputs, _ = data_generator.__getitem__(id)
-            outputs = model.predict(inputs)
-            mask_loss = outputs[-1]
-            mask_losses.append(mask_loss[0])
-
-        mean_mask_loss = np.mean(mask_losses)
-        std_mask_loss = np.std(mask_losses)
-
-        print("MASK:", mean_mask_loss, "+/-", std_mask_loss)
 
 
 # ## Batch Slicing
