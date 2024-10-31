@@ -32,7 +32,7 @@ See the main branch for extensive details.
 
 ## Data
 
-Data are hosted on figshare: [here](https://figshare.com/account/projects/220273/articles/26973085). The user is expected to download all these files and to unzip them in a "data" folder at the 3d-mask-r-cnn folder, while the weights folder is moved at the same level as data, configs and core folders:
+Data are hosted on figshare: [here](https://figshare.com/articles/dataset/3D_Mask_R-CNN_data/26973085). The user is expected to download all these files and to unzip them in a "data" folder at the 3d-mask-r-cnn folder, while the weights folder is moved at the same level as data, configs and core folders:
 
     /configs
     /core
