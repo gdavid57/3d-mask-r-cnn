@@ -6,18 +6,20 @@ This 3D implementation was written by Gabriel David (LIRMM, Montpellier, France)
 
 This repository is linked to the paper:
 
+**G. David and E. Faure, End-to-end 3D instance segmentation of synthetic data and embryo microscopy images with a 3D Mask R-CNN, Front. Bioinform., 27 January 2025, Volume 4 - 2024 | [DOI link](https://doi.org/10.3389/fbinf.2024.1497539)**
+
 We adopt a Docker approach to simplify the distribution and reproduction of our work. Running this 3D Mask R-CNN without our image is possible but requires to install TensorFlow sources and to compile the 3D Non Max Suppression and 3D Crop And Reisze custom operations by hand.
 
 Go back to [Toy dataset branch](https://github.com/gdavid57/3d-mask-r-cnn/tree/main).
 
 # Phallusia mammillata Dataset
 
-This section aims to reproduce the results of the paper mentioned above on the PM dataset. Please follow the default commands below.
+This section aims to reproduce the results of the paper mentioned above on the Phallusia mammillata dataset. Please follow the default commands below.
 
 Representations of pair ground truth instance segmentation and input image:
 
 <p align="center">
-    <img src="example/segmentation.gif" alt="Instance segmentation" width="50%"><img src="example/input_image.gif" alt="Input image" width="50%">
+    <img src="example/input_image.gif" alt="Input image" width="40%"><img src="example/segmentation.gif" alt="Instance segmentation" width="40%">
 </p>
 
 Clone this repository and access cloned directory with:
@@ -32,7 +34,7 @@ See the main branch for extensive details.
 
 ## Data
 
-Data are hosted on figshare: [here](https://figshare.com/articles/dataset/3D_Mask_R-CNN_data/26973085). The user is expected to download all these files and to unzip them in a "data" folder at the 3d-mask-r-cnn folder, while the weights folder is moved at the same level as data, configs and core folders:
+Data are hosted on figshare: [here](https://figshare.com/articles/dataset/3D_Mask_R-CNN_data/26973085). The user is expected to download all these files and to unzip them in a "data" folder within the 3d-mask-r-cnn folder, while the weights folder must be copied at the same level as the data, configs and core folders:
 
     /configs
     /core
@@ -49,19 +51,19 @@ Data are hosted on figshare: [here](https://figshare.com/articles/dataset/3D_Mas
         /heads
             epoch_017.h5
 
-The Mask R-CNN evaluation partly relies on generated ground truth data such as the bounding boxes of the cell instances. To build these additive ground truths, run:
+To perform evaluation, one must generate ground truth data (bounding boxes and minimasks). To build these additive ground truths, run:
 
 ```
 docker run -it --gpus "0" --volume $PWD:/workspace gdavid57/3d-mask-r-cnn python -m generate_bboxes_and_minimasks.py
 ```
 
-The test set, composed of the PM1 series, is generated using:
+The test set, composed of the so-called PM1 series, which constitutes the most reliable series in this dataset, is created using:
 
 ```
 docker run -it --gpus "0" --volume $PWD:/workspace gdavid57/3d-mask-r-cnn python -m generate_datasets.py
 ```
 
-For full transparency, we also deliver the code to generate the RPN targets and to augment 3D instance segmentation data, although we do not use them for evaluation.
+For transparency during the review process, we also delivered the code to generate the RPN targets and to augment 3D instance segmentation data, although we do not use them for evaluation.
 
 
 ## Mask R-CNN evaluation
